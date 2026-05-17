@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Landmark, TrendingUp, CreditCard, Building2 } from "lucide-react"
 import Link from "next/link"
+import DisconnectButton from "@/components/settings/DisconnectButton"
 
 const fmt = (n: number | null) =>
   n != null
@@ -96,7 +97,8 @@ export default async function AccountsPage() {
                       <Landmark className="w-4 h-4 text-muted-foreground" />
                     </div>
                   )}
-                  <p className="font-medium text-sm">{inst.institution_name}</p>
+                  <p className="font-medium text-sm flex-1">{inst.institution_name}</p>
+                  <DisconnectButton institutionId={inst.id} name={inst.institution_name} />
                 </div>
 
                 {/* Account rows */}
