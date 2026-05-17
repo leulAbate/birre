@@ -224,7 +224,7 @@ function GoalForm({
                   className={`w-7 h-7 rounded-full transition-all ${
                     color === c.value ? "ring-2 ring-offset-2 scale-110" : "hover:scale-105"
                   }`}
-                  style={{ background: c.value, ringColor: c.value }}
+                  style={{ background: c.value }}
                   title={c.label}
                 />
               ))}
