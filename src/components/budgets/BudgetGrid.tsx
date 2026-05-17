@@ -103,7 +103,8 @@ function BudgetForm({
 
   const suggestion = avgMap[category]
 
-  function handleCategoryChange(cat: string) {
+  function handleCategoryChange(cat: string | null) {
+    if (!cat) return
     setCategory(cat)
     // Pre-fill with 3-month average if no amount set yet
     if (!initial?.id && avgMap[cat]) {
