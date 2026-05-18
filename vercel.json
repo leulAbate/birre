@@ -4,5 +4,6 @@
       "path": "/api/plaid/sync",
       "schedule": "0 8 * * *"
     }
-  ]
+  ],
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ] || [ \"$VERCEL_GIT_COMMIT_REF\" = \"dev\" ]; then exit 0; else exit 1; fi"
 }
