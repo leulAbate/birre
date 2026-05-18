@@ -39,6 +39,7 @@ interface Transaction {
   merchant_name: string | null
   date: string
   pending?: boolean
+  account: { id: string; name: string; type: string }[] | null
 }
 
 interface Props {
@@ -47,22 +48,31 @@ interface Props {
   month: string
 }
 
-function calcSummary(txns: { amount: number; category: string | null }[]) {
+function calcSummary(txns: Transaction[]) {
   const income = txns.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
   const spending = txns.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0)
   const byCategory: Record<string, number> = {}
+  const byAccount: Record<string, { name: string; type: string; income: number; spending: number }> = {}
+
   for (const t of txns) {
     if (t.amount > 0 && t.category) {
       byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount
     }
+    const acct = Array.isArray(t.account) ? t.account[0] : t.account
+    if (acct) {
+      const key = acct.id
+      if (!byAccount[key]) byAccount[key] = { name: acct.name, type: acct.type, income: 0, spending: 0 }
+      if (t.amount < 0) byAccount[key].income += Math.abs(t.amount)
+      else byAccount[key].spending += t.amount
+    }
   }
-  return { income, spending, byCategory }
+  return { income, spending, byCategory, byAccount }
 }
 
 export default function MonthlyView({ transactions, previousTransactions, month }: Props) {
   const router = useRouter()
   const curr = calcSummary(transactions)
-  const prev = calcSummary(previousTransactions)
+  const prev = calcSummary(previousTransactions.map((t) => ({ ...t, description: "", merchant_name: null, date: "", account: [] })))
   const net = curr.income - curr.spending
 
   const categories = Object.entries(curr.byCategory)
@@ -169,6 +179,34 @@ export default function MonthlyView({ transactions, previousTransactions, month 
                 })}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* By account */}
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <h3 className="text-sm font-semibold mb-1">By Account</h3>
+            <p className="text-xs text-muted-foreground mb-4">Transfers between your own accounts inflate both income and spending totals — use this to spot them.</p>
+            <div className="space-y-2">
+              {Object.entries(curr.byAccount)
+                .sort(([, a], [, b]) => b.spending - a.spending)
+                .map(([id, acc]) => (
+                  <div key={id} className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{acc.name}</p>
+                      <Badge variant="secondary" className="text-xs py-0 mt-0.5 capitalize">{acc.type}</Badge>
+                    </div>
+                    <div className="text-right space-y-0.5">
+                      {acc.income > 0 && (
+                        <p className="text-xs text-primary font-medium">+{fmtFull(acc.income)} in</p>
+                      )}
+                      {acc.spending > 0 && (
+                        <p className="text-xs text-destructive font-medium">{fmtFull(acc.spending)} out</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
           </CardContent>
         </Card>
 

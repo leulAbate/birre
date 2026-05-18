@@ -26,7 +26,7 @@ export default async function MonthlyPage({
   const [{ data: current }, { data: previous }] = await Promise.all([
     supabase
       .from("transactions")
-      .select("amount, category, description, merchant_name, date, pending")
+      .select("amount, category, description, merchant_name, date, pending, account:accounts(id, name, type)")
       .eq("user_id", user!.id)
       .gte("date", firstOfMonth)
       .lte("date", lastOfMonth)
