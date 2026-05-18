@@ -8,9 +8,8 @@ import {
   ChevronLeft, ChevronRight, TrendingUp, TrendingDown,
   Minus, ChevronDown, ChevronUp
 } from "lucide-react"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select"
+import { resolveCategory } from "@/lib/categories/rules"
+import CategoryPicker from "@/components/transactions/CategoryPicker"
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n)
@@ -40,28 +39,6 @@ function isCurrentMonth(month: string) {
 
 type Group = "needs" | "wants" | "savings" | "exclude"
 
-// Defaults based on common Plaid categories — user can override per category
-const DEFAULT_GROUPS: Record<string, Group> = {
-  RENT_AND_UTILITIES: "needs",
-  LOAN_PAYMENTS: "needs",
-  FOOD_AND_DRINK: "needs",
-  MEDICAL: "needs",
-  HOME_IMPROVEMENT: "needs",
-  INSURANCE: "needs",
-  TRANSPORTATION: "wants",
-  ENTERTAINMENT: "wants",
-  ENTERTAINMENT_AND_RECREATION: "wants",
-  GENERAL_MERCHANDISE: "wants",
-  GENERAL_SERVICES: "wants",
-  PERSONAL_CARE: "wants",
-  TRAVEL: "wants",
-  SUBSCRIPTION: "wants",
-  TRANSFER_OUT: "exclude",
-  TRANSFER_IN: "exclude",
-  INCOME: "exclude",
-  BANK_FEES: "exclude",
-}
-
 const GROUP_LABELS: Record<Group, string> = {
   needs: "Needs",
   wants: "Wants",
@@ -76,9 +53,17 @@ const GROUP_COLORS: Record<Group, string> = {
   exclude: "bg-muted text-muted-foreground",
 }
 
+interface CustomCategory {
+  name: string
+  color: string
+  group_type: string
+}
+
 interface Transaction {
+  id: string
   amount: number
   category: string | null
+  custom_category?: string | null
   description: string
   merchant_name: string | null
   date: string
@@ -115,28 +100,21 @@ function calcSummary(txns: Transaction[]) {
 
 export default function MonthlyView({ transactions, previousTransactions, month }: Props) {
   const router = useRouter()
-  const curr = calcSummary(transactions)
-  const prev = calcSummary(previousTransactions.map((t) => ({
-    ...t, description: "", merchant_name: null, date: "", account: []
-  })))
-  const net = curr.income - curr.spending
-
-  const [overrides, setOverrides] = useState<Record<string, Group>>({})
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [txns, setTxns] = useState(transactions)
 
   useEffect(() => {
-    const saved = localStorage.getItem("birre_category_groups")
-    if (saved) setOverrides(JSON.parse(saved))
+    fetch("/api/categories").then((r) => r.json()).then(setCustomCategories)
   }, [])
 
-  function setGroup(cat: string, group: Group) {
-    const next = { ...overrides, [cat]: group }
-    setOverrides(next)
-    localStorage.setItem("birre_category_groups", JSON.stringify(next))
+  function getGroup(catName: string): Group {
+    const found = customCategories.find((c) => c.name === catName)
+    return (found?.group_type ?? "wants") as Group
   }
 
-  function getGroup(cat: string): Group {
-    return overrides[cat] ?? DEFAULT_GROUPS[cat] ?? "wants"
+  function handleCategoryChanged(txnId: string, newCategory: string) {
+    setTxns((prev) => prev.map((t) => t.id === txnId ? { ...t, custom_category: newCategory } : t))
   }
 
   function toggleExpanded(cat: string) {
@@ -147,15 +125,29 @@ export default function MonthlyView({ transactions, previousTransactions, month 
     })
   }
 
-  const categories = Object.entries(curr.byCategory).sort(([, a], [, b]) => b - a)
+  const curr = calcSummary(txns)
+  const prev = calcSummary(previousTransactions.map((t) => ({
+    ...t, id: "", description: "", merchant_name: null, date: "", account: []
+  })))
+
+  // Build category totals using resolved custom categories
+  const categoryTotals: Record<string, number> = {}
+  for (const t of txns) {
+    if (t.amount > 0) {
+      const cat = resolveCategory(t)
+      categoryTotals[cat] = (categoryTotals[cat] ?? 0) + t.amount
+    }
+  }
+  const categories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a)
   const maxSpend = categories[0]?.[1] ?? 1
 
-  // Group totals (excluding "exclude" group)
   const groupTotals: Record<Group, number> = { needs: 0, wants: 0, savings: 0, exclude: 0 }
   for (const [cat, amt] of categories) {
     groupTotals[getGroup(cat)] += amt
   }
-  const totalTracked = groupTotals.needs + groupTotals.wants + groupTotals.savings
+
+  const adjustedSpending = groupTotals.needs + groupTotals.wants
+  const adjustedNet = curr.income - adjustedSpending - groupTotals.savings
 
   function pctChange(curr: number, prev: number) {
     if (prev === 0) return null
@@ -195,17 +187,17 @@ export default function MonthlyView({ transactions, previousTransactions, month 
           <Card className="border-destructive/20">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">Spending</p>
-              <p className="text-xl font-bold tabular-nums">{fmt(curr.spending)}</p>
-              <CompareTag curr={curr.spending} prev={prev.spending} positiveIsGood={false} />
+              <p className="text-xl font-bold tabular-nums">{fmt(adjustedSpending)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Transfers excluded</p>
             </CardContent>
           </Card>
-          <Card className={net >= 0 ? "border-primary/20 bg-primary/5" : "border-destructive/20 bg-destructive/5"}>
+          <Card className={adjustedNet >= 0 ? "border-primary/20 bg-primary/5" : "border-destructive/20 bg-destructive/5"}>
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">Net saved</p>
-              <p className={`text-xl font-bold tabular-nums ${net >= 0 ? "text-primary" : "text-destructive"}`}>
-                {net >= 0 ? "+" : ""}{fmt(net)}
+              <p className={`text-xl font-bold tabular-nums ${adjustedNet >= 0 ? "text-primary" : "text-destructive"}`}>
+                {adjustedNet >= 0 ? "+" : ""}{fmt(adjustedNet)}
               </p>
-              <CompareTag curr={net} prev={prev.income - prev.spending} positiveIsGood />
+              <p className="text-xs text-muted-foreground mt-1">{fmt(groupTotals.savings)} to savings</p>
             </CardContent>
           </Card>
         </div>
@@ -264,7 +256,7 @@ export default function MonthlyView({ transactions, previousTransactions, month 
                   const change = pctChange(amount, prevAmt)
                   const barPct = (amount / maxSpend) * 100
                   const isOpen = expanded.has(cat)
-                  const catTxns = transactions.filter((t) => t.category === cat && t.amount > 0)
+                  const catTxns = txns.filter((t) => resolveCategory(t) === cat && t.amount > 0)
                     .sort((a, b) => b.amount - a.amount)
 
                   return (
@@ -295,22 +287,12 @@ export default function MonthlyView({ transactions, previousTransactions, month 
                         </div>
                       </button>
 
-                      {/* Expanded transactions + group selector */}
+                      {/* Expanded transactions */}
                       {isOpen && (
                         <div className="px-3 pb-3 space-y-2">
-                          <div className="flex items-center gap-2 pt-1 pb-2 border-b border-border/40">
-                            <span className="text-xs text-muted-foreground">Budget group:</span>
-                            <Select value={getGroup(cat)} onValueChange={(val) => setGroup(cat, (val ?? "wants") as Group)}>
-                              <SelectTrigger className="h-6 text-xs w-32 py-0">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(Object.keys(GROUP_LABELS) as Group[]).map((g) => (
-                                  <SelectItem key={g} value={g} className="text-xs">{GROUP_LABELS[g]}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <span className="text-xs text-muted-foreground ml-auto">{catTxns.length} transaction{catTxns.length !== 1 ? "s" : ""}</span>
+                          <div className="flex items-center justify-between pt-1 pb-2 border-b border-border/40">
+                            <Badge className={`text-xs py-0 ${GROUP_COLORS[getGroup(cat)]}`}>{GROUP_LABELS[getGroup(cat)]}</Badge>
+                            <span className="text-xs text-muted-foreground">{catTxns.length} transaction{catTxns.length !== 1 ? "s" : ""}</span>
                           </div>
                           <div className="space-y-0.5">
                             {catTxns.map((t, i) => (
@@ -319,7 +301,14 @@ export default function MonthlyView({ transactions, previousTransactions, month 
                                   <p className="text-sm leading-tight">{t.merchant_name ?? t.description}</p>
                                   <p className="text-xs text-muted-foreground">{t.date}</p>
                                 </div>
-                                <span className="text-sm font-medium tabular-nums">{fmtFull(t.amount)}</span>
+                                <div className="flex items-center gap-2">
+                                  <CategoryPicker
+                                    transactionId={t.id}
+                                    current={resolveCategory(t)}
+                                    onChanged={(cat) => handleCategoryChanged(t.id, cat)}
+                                  />
+                                  <span className="text-sm font-medium tabular-nums">{fmtFull(t.amount)}</span>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -363,23 +352,29 @@ export default function MonthlyView({ transactions, previousTransactions, month 
         <Card>
           <CardContent className="pt-5 pb-2">
             <h3 className="text-sm font-semibold mb-4">All Transactions</h3>
-            {transactions.length === 0 ? (
+            {txns.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No transactions this month.</p>
             ) : (
               <div className="space-y-0.5">
-                {transactions.map((t, i) => (
+                {txns.map((t, i) => (
                   <div key={i} className="flex items-center justify-between px-2 py-2.5 rounded-xl hover:bg-muted/50 transition-colors">
                     <div>
                       <p className="text-sm font-medium leading-tight">{t.merchant_name ?? t.description}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-xs text-muted-foreground">{t.date}</span>
-                        {t.category && <Badge variant="secondary" className="text-xs py-0">{formatCategory(t.category)}</Badge>}
                         {t.pending && <Badge variant="outline" className="text-xs py-0">Pending</Badge>}
                       </div>
                     </div>
-                    <span className={`text-sm font-semibold tabular-nums ${t.amount < 0 ? "text-primary" : ""}`}>
-                      {t.amount < 0 ? "+" : ""}{fmtFull(t.amount)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <CategoryPicker
+                        transactionId={t.id}
+                        current={resolveCategory(t)}
+                        onChanged={(cat) => handleCategoryChanged(t.id, cat)}
+                      />
+                      <span className={`text-sm font-semibold tabular-nums ${t.amount < 0 ? "text-primary" : ""}`}>
+                        {t.amount < 0 ? "+" : ""}{fmtFull(t.amount)}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
