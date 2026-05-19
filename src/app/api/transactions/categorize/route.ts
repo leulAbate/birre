@@ -9,15 +9,30 @@ export async function PATCH(request: Request) {
   const { transaction_id, custom_category } = await request.json()
   if (!transaction_id) return NextResponse.json({ error: "Missing transaction_id" }, { status: 400 })
 
-  // Assigning a category marks as reviewed; removing sends back to inbox
   const reviewed = custom_category != null
 
-  const { error } = await supabase
+  const { data: txn, error } = await supabase
     .from("transactions")
     .update({ custom_category: custom_category ?? null, reviewed })
     .eq("id", transaction_id)
     .eq("user_id", user.id)
+    .select("merchant_name, description")
+    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Save learned merchant rule when assigning a category
+  if (custom_category && txn) {
+    const merchantKey = (txn.merchant_name ?? txn.description ?? "").trim()
+    if (merchantKey) {
+      await supabase
+        .from("user_merchant_rules")
+        .upsert(
+          { user_id: user.id, merchant_pattern: merchantKey, category: custom_category, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,merchant_pattern" }
+        )
+    }
+  }
+
   return NextResponse.json({ success: true })
 }
