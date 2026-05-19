@@ -22,7 +22,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar userEmail={user.email ?? ""} inboxCount={inboxCount ?? 0} />
-      <main className="flex-1 overflow-y-auto bg-background">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

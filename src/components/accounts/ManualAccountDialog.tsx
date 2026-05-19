@@ -57,10 +57,12 @@ export default function ManualAccountDialog({ open, onClose, initial }: Props) {
   const [saving, setSaving] = useState(false)
 
   const subtypeOptions = SUBTYPES[type] ?? []
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSave() {
     if (!name || !type || balance === "") return
     setSaving(true)
+    setError(null)
 
     const payload = {
       id: initial?.id,
@@ -70,13 +72,20 @@ export default function ManualAccountDialog({ open, onClose, initial }: Props) {
       current_balance: parseFloat(balance),
     }
 
-    await fetch("/api/accounts", {
+    const res = await fetch("/api/accounts", {
       method: initial?.id ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
 
     setSaving(false)
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      setError(body.error ?? "Something went wrong. Please try again.")
+      return
+    }
+
     onClose()
     router.refresh()
   }
@@ -135,6 +144,10 @@ export default function ManualAccountDialog({ open, onClose, initial }: Props) {
               <p className="text-xs text-muted-foreground">Enter the amount you owe as a positive number.</p>
             )}
           </div>
+
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+          )}
 
           <Button className="w-full" onClick={handleSave} disabled={saving || !name || !type || balance === ""}>
             {saving ? "Saving…" : initial?.id ? "Save changes" : "Add account"}

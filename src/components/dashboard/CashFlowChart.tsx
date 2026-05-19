@@ -15,9 +15,9 @@ type ChartType = "bar" | "line" | "pie"
 
 // Real hex colors — recharts cannot read CSS variables
 const COLORS = {
-  income:   "#10B981",
-  spending: "#EF4444",
-  pie: ["#10B981", "#F59E0B", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#EF4444"],
+  income:   "#34D399",
+  spending: "#F87171",
+  pie: ["#818CF8", "#34D399", "#F59E0B", "#F87171", "#A78BFA", "#38BDF8", "#FB923C", "#4ADE80"],
 }
 
 const fmt = (n: number) =>
@@ -30,7 +30,7 @@ function formatCategory(cat: string) {
 function BarLineTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: "rgba(255,255,255,0.95)", backdropFilter: "blur(8px)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
+    <div style={{ background: "rgba(15,15,30,0.95)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.4)", color: "#F8FAFC" }}>
       <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.color, margin: "2px 0" }}>
@@ -45,9 +45,9 @@ function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
   const { name, value, percent } = payload[0]
   return (
-    <div style={{ background: "rgba(255,255,255,0.95)", backdropFilter: "blur(8px)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
+    <div style={{ background: "rgba(15,15,30,0.95)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.4)", color: "#F8FAFC" }}>
       <p style={{ fontWeight: 600, marginBottom: 2 }}>{formatCategory(name)}</p>
-      <p style={{ color: "#10B981" }}>{fmt(value)}</p>
+      <p style={{ color: "#34D399" }}>{fmt(value)}</p>
       <p style={{ color: "#6B7280" }}>{(percent * 100).toFixed(1)}% of spending</p>
     </div>
   )
@@ -95,18 +95,19 @@ export default function CashFlowChart({
               <p className="text-xs text-muted-foreground mt-0.5">Where your money is going</p>
             )}
           </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg p-0.5" style={{ background: "rgba(255,255,255,0.06)" }}>
             {CHART_TYPES.map(({ type, icon: Icon, label }) => (
               <button
                 key={type}
                 onClick={() => setChartType(type)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                   chartType === type
-                    ? "bg-card shadow-sm text-foreground"
+                    ? "text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
+                style={chartType === type ? { background: "rgba(124,106,247,0.7)", boxShadow: "0 2px 8px rgba(124,106,247,0.3)" } : undefined}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3 h-3" />
                 {label}
               </button>
             ))}
@@ -165,21 +166,21 @@ export default function CashFlowChart({
           </div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={240}>
               {chartType === "bar" ? (
                 <BarChart data={data} barCategoryGap="30%" barGap={3}>
-                  <CartesianGrid vertical={false} stroke="#E5E7EB" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} width={40} />
-                  <Tooltip content={<BarLineTooltip />} cursor={{ fill: "#F3F4F6", radius: 6 }} />
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} width={40} />
+                  <Tooltip content={<BarLineTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)", radius: 6 }} />
                   <Bar dataKey="income"   name="Income"   fill={COLORS.income}   radius={[4, 4, 0, 0]} />
                   <Bar dataKey="spending" name="Spending" fill={COLORS.spending} radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={data}>
-                  <CartesianGrid vertical={false} stroke="#E5E7EB" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} width={40} />
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} width={40} />
                   <Tooltip content={<BarLineTooltip />} />
                   <Line dataKey="income"   name="Income"   type="monotone" stroke={COLORS.income}   strokeWidth={2.5} dot={{ r: 4, fill: COLORS.income,   stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 6 }} />
                   <Line dataKey="spending" name="Spending" type="monotone" stroke={COLORS.spending} strokeWidth={2.5} dot={{ r: 4, fill: COLORS.spending, stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 6 }} />

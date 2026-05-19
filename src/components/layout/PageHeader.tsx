@@ -6,11 +6,11 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="page-header-glass sticky top-0 z-10 flex items-center justify-between px-8 h-16">
+    <div className="page-header-glass sticky top-0 z-10 flex items-center justify-between px-6 h-14">
       <div>
-        <h1 className="text-lg font-semibold text-foreground leading-tight">{title}</h1>
+        <h1 className="text-sm font-semibold text-foreground tracking-tight">{title}</h1>
         {description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
       {action && <div>{action}</div>}

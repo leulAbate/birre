@@ -4,6 +4,12 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   LayoutDashboard,
   ArrowLeftRight,
   PieChart,
@@ -15,19 +21,48 @@ import {
   Inbox,
   Activity,
   Sparkles,
+  RefreshCw,
 } from "lucide-react"
 
 const navItems = [
-  { href: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
-  { href: "/monthly",      label: "Monthly",      icon: CalendarDays },
-  { href: "/pulse",        label: "Pulse",        icon: Activity },
-  { href: "/insights",     label: "Insights",     icon: Sparkles },
-  { href: "/inbox",        label: "Inbox",        icon: Inbox },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/budgets",      label: "Budgets",      icon: PieChart },
-  { href: "/accounts",     label: "Accounts",     icon: Landmark },
-  { href: "/goals",        label: "Goals",        icon: Target },
+  { href: "/dashboard",     label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/monthly",       label: "Monthly",      icon: CalendarDays },
+  { href: "/pulse",         label: "Pulse",        icon: Activity },
+  { href: "/insights",      label: "Insights",     icon: Sparkles },
+  { href: "/inbox",         label: "Inbox",        icon: Inbox },
+  { href: "/transactions",  label: "Transactions", icon: ArrowLeftRight },
+  { href: "/subscriptions", label: "Recurring",    icon: RefreshCw },
+  { href: "/budgets",       label: "Budgets",      icon: PieChart },
+  { href: "/accounts",      label: "Accounts",     icon: Landmark },
+  { href: "/goals",         label: "Goals",        icon: Target },
 ]
+
+function NavIcon({
+  icon: Icon,
+  active,
+  badge,
+}: {
+  icon: React.ElementType
+  active: boolean
+  badge?: number
+}) {
+  return (
+    <span
+      className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${
+        active
+          ? "nav-active-gloss text-white"
+          : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      }`}
+    >
+      <Icon className="w-[18px] h-[18px]" />
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
+    </span>
+  )
+}
 
 export default function Sidebar({ userEmail, inboxCount = 0 }: { userEmail: string; inboxCount?: number }) {
   const pathname = usePathname()
@@ -40,63 +75,82 @@ export default function Sidebar({ userEmail, inboxCount = 0 }: { userEmail: stri
     router.refresh()
   }
 
+  const initial = userEmail.charAt(0).toUpperCase()
+
   return (
-    <aside className="flex flex-col w-60 shrink-0 h-screen bg-sidebar border-r border-sidebar-border">
-      {/* Logo — glossy header strip */}
-      <div className="sidebar-header-gloss flex items-center gap-3 px-6 h-16">
-        <div className="btn-gloss w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/30">
-          <span className="text-white text-sm font-bold">B</span>
-        </div>
-        <span className="text-sidebar-foreground font-semibold text-lg tracking-tight">Birr&apos;e</span>
-      </div>
+    <TooltipProvider delay={200}>
+      <aside className="flex flex-col w-[64px] shrink-0 h-screen bg-sidebar border-r border-sidebar-border items-center py-4">
+        {/* Logo */}
+        <Tooltip>
+          <TooltipTrigger
+            className="btn-gloss w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/30 mb-5 cursor-default"
+          >
+            <span className="text-white text-sm font-bold">B</span>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>Birr&apos;e</TooltipContent>
+        </Tooltip>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/")
-          const showBadge = href === "/inbox" && inboxCount > 0
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                active
-                  ? "nav-active-gloss text-white"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white"
-              }`}
+        {/* Nav */}
+        <nav className="flex-1 flex flex-col items-center gap-1 w-full px-2.5">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(href + "/")
+            const badge = href === "/inbox" ? inboxCount : undefined
+            return (
+              <Tooltip key={href}>
+                <TooltipTrigger
+                  render={<Link href={href} />}
+                  className="w-full flex justify-center"
+                >
+                  <NavIcon icon={Icon} active={active} badge={badge} />
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>{label}</TooltipContent>
+              </Tooltip>
+            )
+          })}
+        </nav>
+
+        {/* Bottom */}
+        <div className="flex flex-col items-center gap-1 w-full px-2.5">
+          <Tooltip>
+            <TooltipTrigger
+              render={<Link href="/settings" />}
+              className="w-full flex justify-center"
             >
-              <Icon className="w-4.5 h-4.5 shrink-0" />
-              <span className="flex-1">{label}</span>
-              {showBadge && (
-                <span className="ml-auto text-xs font-semibold bg-primary text-white rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
-                  {inboxCount > 99 ? "99+" : inboxCount}
-                </span>
-              )}
-            </Link>
-          )
-        })}
-      </nav>
+              <span
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${
+                  pathname.startsWith("/settings")
+                    ? "nav-active-gloss text-white"
+                    : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                }`}
+              >
+                <Settings className="w-[18px] h-[18px]" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>Settings</TooltipContent>
+          </Tooltip>
 
-      {/* Bottom */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-white transition-colors"
-        >
-          <Settings className="w-5 h-5 shrink-0" />
-          Settings
-        </Link>
-        <div className="px-3 py-2">
-          <p className="text-xs text-sidebar-foreground/50 truncate">{userEmail}</p>
+          <Tooltip>
+            <TooltipTrigger
+              render={<button onClick={handleSignOut} />}
+              className="w-full flex justify-center"
+            >
+              <span className="w-10 h-10 flex items-center justify-center rounded-xl text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">
+                <LogOut className="w-[18px] h-[18px]" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>Sign out</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger className="cursor-default">
+              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-semibold text-primary mt-1 select-none">
+                {initial}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>{userEmail}</TooltipContent>
+          </Tooltip>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-white transition-colors"
-        >
-          <LogOut className="w-5 h-5 shrink-0" />
-          Sign out
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   )
 }
