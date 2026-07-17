@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birr'e — Plans</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600&display=swap');
+
+    :root, [data-theme="dark"] {
+      --bg: #080e0a; --bg-card: rgba(255,255,255,0.04); --bg-card-solid: #0d1a10;
+      --border: rgba(255,255,255,0.08); --border-top: rgba(255,255,255,0.14);
+      --text-primary: #e8f0ea; --text-secondary: rgba(255,255,255,0.45); --text-muted: rgba(255,255,255,0.25);
+      --accent: #34d399; --accent-bg: rgba(52,211,153,0.10); --accent-border: rgba(52,211,153,0.22);
+      --accent-btn-from: #34d399; --accent-btn-to: #10b981; --accent-btn-text: #000;
+      --warn: #fbbf24; --over: #f87171; --violet: #a78bfa; --violet-bg: rgba(167,139,250,0.10); --violet-border: rgba(167,139,250,0.22);
+      --progress-bg: rgba(255,255,255,0.06); --hover-bg: rgba(255,255,255,0.04);
+      --heading-font: 'Inter', sans-serif;
+      --sidebar-bg: #060c08; --sidebar-border: rgba(255,255,255,0.06);
+      --sidebar-icon: rgba(255,255,255,0.32); --sidebar-icon-hover: rgba(255,255,255,0.72);
+      --sidebar-active-bg: rgba(52,211,153,0.14); --sidebar-active: #34d399;
+      --sidebar-label: rgba(255,255,255,0.75);
+      --modal-bg: #0d1a10; --modal-shadow: rgba(0,0,0,0.7);
+      --income-color: #34d399; --expense-color: #f87171;
+      --ok-bg: rgba(52,211,153,0.08); --warn-bg: rgba(251,191,36,0.08); --over-bg: rgba(248,113,113,0.08);
+    }
+    [data-theme="light"] {
+      --bg: #f0e9da; --bg-card: rgba(255,252,244,0.78); --bg-card-solid: #faf7f0;
+      --border: rgba(120,90,50,0.13); --border-top: rgba(255,255,255,0.88);
+      --text-primary: #271a08; --text-secondary: rgba(39,26,8,0.52); --text-muted: rgba(39,26,8,0.32);
+      --accent: #8c6d1f; --accent-bg: rgba(140,109,31,0.09); --accent-border: rgba(140,109,31,0.22);
+      --accent-btn-from: #a07c28; --accent-btn-to: #7a5c14; --accent-btn-text: #fff;
+      --warn: #b45309; --over: #b91c1c; --violet: #5b3fa6; --violet-bg: rgba(91,63,166,0.08); --violet-border: rgba(91,63,166,0.2);
+      --progress-bg: rgba(120,90,50,0.10); --hover-bg: rgba(120,90,50,0.06);
+      --heading-font: 'Playfair Display', serif;
+      --sidebar-bg: #1a2235; --sidebar-border: rgba(255,255,255,0.07);
+      --sidebar-icon: rgba(200,190,170,0.45); --sidebar-icon-hover: rgba(220,210,190,0.85);
+      --sidebar-active-bg: rgba(200,168,90,0.18); --sidebar-active: #c8a85a;
+      --sidebar-label: rgba(220,210,190,0.85);
+      --modal-bg: #faf7f0; --modal-shadow: rgba(80,50,20,0.25);
+      --income-color: #166534; --expense-color: #b91c1c;
+      --ok-bg: rgba(22,101,52,0.07); --warn-bg: rgba(180,83,9,0.07); --over-bg: rgba(185,28,28,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-primary); height: 100vh; overflow: hidden; transition: background 0.35s, color 0.35s; }
+
+    .bg-blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+    :root .blob1, [data-theme="dark"] .blob1 { background: rgba(6,78,59,0.35); }
+    :root .blob2, [data-theme="dark"] .blob2 { background: rgba(6,78,59,0.18); }
+    :root .blob3, [data-theme="dark"] .blob3 { background: rgba(76,29,149,0.18); }
+    [data-theme="light"] .blob1 { background: rgba(180,148,80,0.18) !important; }
+    [data-theme="light"] .blob2 { background: rgba(160,120,60,0.12) !important; }
+    [data-theme="light"] .blob3 { background: rgba(26,34,53,0.06) !important; }
+
+    .glass { background: var(--bg-card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--border); border-top-color: var(--border-top); transition: background 0.35s, border-color 0.35s; }
+    [data-theme="light"] .glass { box-shadow: 0 2px 24px rgba(120,90,50,0.08), inset 0 1px 0 rgba(255,255,255,0.75); }
+
+    /* Sidebar */
+    #sidebar { width: 64px; flex-shrink: 0; height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); display: flex; flex-direction: column; align-items: stretch; padding: 16px 0; gap: 4px; overflow: hidden; transition: width 0.25s cubic-bezier(0.4,0,0.2,1), background 0.35s; }
+    #sidebar:hover { width: 204px; }
+    .nav-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 16px; overflow: hidden; }
+    .nav-logo-icon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--sidebar-active-bg); border: 1px solid var(--sidebar-border); }
+    .nav-logo-text { font-family: var(--heading-font); font-size: 16px; font-weight: 600; color: var(--sidebar-active); white-space: nowrap; opacity: 0; transition: opacity 0.15s 0.08s; }
+    #sidebar:hover .nav-logo-text { opacity: 1; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 44px; border-radius: 12px; margin: 0 8px; cursor: pointer; overflow: hidden; color: var(--sidebar-icon); transition: background 0.18s, color 0.18s; }
+    .nav-item:hover { background: var(--hover-bg); color: var(--sidebar-icon-hover); }
+    .nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active); }
+    .nav-icon { flex-shrink: 0; width: 20px; display: flex; justify-content: center; }
+    .nav-label { font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--sidebar-label); opacity: 0; transition: opacity 0.15s 0.08s; }
+    .nav-item.active .nav-label { color: var(--sidebar-active); }
+    #sidebar:hover .nav-label { opacity: 1; }
+    .nav-spacer { flex: 1; }
+
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .page-title { font-family: var(--heading-font); }
+    [data-theme="dark"]  .accent-num { color: var(--accent); text-shadow: 0 0 28px rgba(52,211,153,0.55); }
+    [data-theme="light"] .accent-num { color: var(--accent); }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+
+    .progress-track { height: 6px; background: var(--progress-bg); border-radius: 99px; overflow: hidden; }
+    .progress-fill  { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+
+    .spill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+    .spill-ok   { color: var(--accent); background: var(--ok-bg);   border-color: var(--accent-border); }
+    .spill-warn { color: var(--warn);   background: var(--warn-bg); border-color: rgba(251,191,36,0.25); }
+    .spill-over { color: var(--over);   background: var(--over-bg); border-color: rgba(248,113,113,0.25); }
+    .spill-wish { color: var(--violet); background: var(--violet-bg); border-color: var(--violet-border); }
+
+    .goal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .goal-card { border-radius: 18px; padding: 20px; cursor: pointer; transition: transform 0.18s; }
+    .goal-card:hover { transform: translateY(-2px); }
+
+    .add-goal-card { border-radius: 18px; padding: 20px; border: 1.5px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; min-height: 180px; transition: border-color 0.18s, background 0.18s; }
+    .add-goal-card:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+
+    /* Wishlist strip */
+    .wish-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .wish-row:last-child { border-bottom: none; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 300; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--modal-bg); border: 1px solid var(--border); border-top-color: var(--border-top); border-radius: 20px; padding: 28px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 80px var(--modal-shadow); }
+    .modal-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: block; }
+    .modal-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+    [data-theme="light"] .modal-input { background: rgba(255,252,244,0.5); }
+    .modal-input:focus { border-color: var(--accent-border); }
+    .modal-input::placeholder { color: var(--text-muted); }
+    .modal-select { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-primary); outline: none; cursor: pointer; }
+    [data-theme="light"] .modal-select { background: rgba(255,252,244,0.5); }
+
+    .btn-primary { padding: 11px 20px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--accent-btn-from), var(--accent-btn-to)); color: var(--accent-btn-text); transition: opacity 0.15s; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-ghost { padding: 11px 20px; border-radius: 10px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; background: none; color: var(--text-secondary); transition: background 0.15s; }
+    .btn-ghost:hover { background: var(--hover-bg); }
+    .btn-wish { padding: 11px 20px; border-radius: 10px; border: 1px solid var(--violet-border); font-size: 13px; font-weight: 600; cursor: pointer; background: var(--violet-bg); color: var(--violet); transition: opacity 0.15s; }
+    .btn-wish:hover { opacity: 0.8; }
+
+    /* AI prompt area */
+    .ai-prompt-wrap { position: relative; }
+    .ai-prompt-input { width: 100%; background: rgba(167,139,250,0.06); border: 1px solid var(--violet-border); border-radius: 14px; padding: 14px 48px 14px 16px; font-size: 14px; font-family: 'Inter', sans-serif; color: var(--text-primary); outline: none; resize: none; min-height: 56px; line-height: 1.5; transition: border-color 0.15s, box-shadow 0.15s; }
+    .ai-prompt-input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(167,139,250,0.12); }
+    .ai-prompt-input::placeholder { color: var(--text-muted); }
+    .ai-send-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: var(--violet); color: #fff; transition: opacity 0.15s; }
+    .ai-send-btn:hover { opacity: 0.85; }
+
+    /* AI response bubble */
+    .ai-bubble { background: rgba(167,139,250,0.07); border: 1px solid var(--violet-border); border-radius: 14px; padding: 16px; margin-top: 12px; display: none; }
+    .ai-bubble.show { display: block; }
+    .ai-bubble-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .ai-avatar { width: 24px; height: 24px; border-radius: 6px; background: var(--violet); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ai-suggestion-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(167,139,250,0.12); }
+    .ai-suggestion-row:last-child { border-bottom: none; }
+    .ai-insight { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(52,211,153,0.07); border: 1px solid rgba(52,211,153,0.15); font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+    .ai-insight strong { color: var(--accent); }
+
+    /* Divider */
+    .or-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+    .or-divider span { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .or-divider::before, .or-divider::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    /* Emoji row */
+    .emoji-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .emoji-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; }
+    .emoji-btn:hover, .emoji-btn.selected { background: var(--accent-bg); border-color: var(--accent-border); }
+    @keyframes typing { 0%,60%,100%{opacity:0.2;transform:translateY(0)} 30%{opacity:1;transform:translateY(-3px)} }
+    .ai-prompt-chip { padding:5px 11px;border-radius:99px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;text-align:left; }
+    .ai-prompt-chip:hover { border-color:var(--violet-border);color:var(--violet);background:var(--violet-bg); }
+  </style>
+</head>
+<body>
+
+  <div class="bg-blob blob1 w-[500px] h-[500px]" style="top:-100px;left:80px;"></div>
+  <div class="bg-blob blob2 w-[350px] h-[350px]" style="bottom:-60px;right:200px;"></div>
+  <div class="bg-blob blob3 w-[280px] h-[280px]" style="top:35%;right:80px;"></div>
+
+  <!-- ── ADD GOAL MODAL (AI-assisted) ── -->
+  <div class="modal-overlay" id="modal-add-goal" onclick="if(event.target===this)closeModal('modal-add-goal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-lg font-bold page-title">New Goal</h2>
+          <p class="text-xs mt-0.5" style="color:var(--text-muted);">Describe what you want, or fill it in yourself</p>
+        </div>
+        <button onclick="closeModal('modal-add-goal')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;">✕</button>
+      </div>
+
+      <!-- AI input -->
+      <div class="ai-prompt-wrap">
+        <textarea id="aiInput" class="ai-prompt-input" rows="2" placeholder="e.g. I want to go to Japan next summer, or I kinda want AirPods but no rush…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <button class="ai-send-btn" onclick="simulateAI()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- AI response (hidden until "sent") -->
+      <div class="ai-bubble" id="aiBubble">
+        <div class="ai-bubble-header">
+          <div class="ai-avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></div>
+          <span class="text-xs font-semibold" style="color:var(--violet);">Birr'e AI</span>
+          <span class="text-xs" style="color:var(--text-muted);">based on your last 3 months</span>
+        </div>
+        <div id="aiSuggestions">
+          <!-- Filled by JS -->
+        </div>
+        <div class="ai-insight" id="aiInsight"></div>
+      </div>
+
+      <div class="or-divider"><span>or fill in manually</span></div>
+
+      <!-- Manual fields -->
+      <div class="mb-4">
+        <label class="modal-label">Icon</label>
+        <div class="emoji-row">
+          <button class="emoji-btn selected" onclick="selectEmoji(this)">🏖️</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🏠</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🚗</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">💻</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">✈️</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">💍</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🎓</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🆘</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🎯</button>
+          <button class="emoji-btn" onclick="selectEmoji(this)">🎧</button>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="modal-label">Goal Name</label>
+        <input class="modal-input" id="goalName" type="text" placeholder="e.g. Japan Trip" />
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" class="mb-4">
+        <div>
+          <label class="modal-label">Target Amount</label>
+          <input class="modal-input" id="targetAmt" type="text" placeholder="$3,500" />
+        </div>
+        <div>
+          <label class="modal-label">Already Saved</label>
+          <input class="modal-input" id="savedAmt" type="text" placeholder="$0" />
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="modal-label">Target Date <span style="color:var(--text-muted);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(optional — leave blank for wishlist)</span></label>
+        <input class="modal-input" id="targetDate" type="month" style="color-scheme:dark;" />
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <button class="btn-ghost" onclick="closeModal('modal-add-goal')">Cancel</button>
+        <button class="btn-wish" onclick="closeModal('modal-add-goal')">
+          <span>✦</span> Save to Wishlist
+        </button>
+        <button class="btn-primary" onclick="closeModal('modal-add-goal')">Set as Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GOAL DETAIL MODAL ── -->
+  <div class="modal-overlay" id="modal-goal-detail" onclick="if(event.target===this)closeModal('modal-goal-detail')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-3">
+          <span id="detail-icon" style="font-size:28px;">🏖️</span>
+          <div>
+            <h2 class="text-lg font-bold page-title" id="detail-name">Vacation Fund</h2>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-goal-detail')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;">✕</button>
+      </div>
+
+      <div style="margin:20px 0;">
+        <div class="flex justify-between items-end mb-2">
+          <div>
+            <p class="section-label mb-1">Progress</p>
+            <p style="font-size:28px;font-weight:800;" class="accent-num gn" id="detail-saved">$2,400</p>
+          </div>
+          <p class="text-sm" style="color:var(--text-muted);">of <span id="detail-target" class="gn" style="color:var(--text-secondary);font-weight:600;">$5,000</span></p>
+        </div>
+        <div class="progress-track" style="height:10px;">
+          <div class="progress-fill" id="detail-bar" style="width:48%;background:var(--accent);"></div>
+        </div>
+        <p class="text-xs mt-2" style="color:var(--text-muted);" id="detail-pct">48% complete</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+        <div class="glass rounded-xl p-3 text-center">
+          <p class="section-label mb-1">Monthly needed</p>
+          <p class="text-sm font-bold gn" id="detail-monthly" style="color:var(--text-primary);">$320/mo</p>
+        </div>
+        <div class="glass rounded-xl p-3 text-center">
+          <p class="section-label mb-1">Months left</p>
+          <p class="text-sm font-bold" id="detail-months" style="color:var(--text-primary);">8 mo</p>
+        </div>
+        <div class="glass rounded-xl p-3 text-center">
+          <p class="section-label mb-1">Target date</p>
+          <p class="text-sm font-bold" id="detail-date" style="color:var(--text-primary);">Dec 2026</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="modal-label">Recent Contributions</label>
+        <div style="border-radius:12px;border:1px solid var(--border);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <div>
+              <p style="font-size:13px;font-weight:500;color:var(--text-primary);">Savings Transfer</p>
+              <p style="font-size:11px;color:var(--text-muted);">May 18 · tagged to this goal</p>
+            </div>
+            <p style="font-size:13px;font-weight:700;color:var(--accent);">+$325</p>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <div>
+              <p style="font-size:13px;font-weight:500;color:var(--text-primary);">Savings Transfer</p>
+              <p style="font-size:11px;color:var(--text-muted);">Apr 17 · tagged to this goal</p>
+            </div>
+            <p style="font-size:13px;font-weight:700;color:var(--accent);">+$325</p>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;">
+            <div>
+              <p style="font-size:13px;font-weight:500;color:var(--text-primary);">Savings Transfer</p>
+              <p style="font-size:11px;color:var(--text-muted);">Mar 19 · tagged to this goal</p>
+            </div>
+            <p style="font-size:13px;font-weight:700;color:var(--accent);">+$325</p>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5;">Contributions are tracked automatically — when you add a savings transaction, tag it to this goal and it'll show up here.</p>
+      </div>
+
+      <div class="flex gap-3 justify-between">
+        <button class="btn-ghost" style="color:var(--over);border-color:rgba(248,113,113,0.2);">Delete</button>
+        <button class="btn-ghost">Edit Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYOUT ── -->
+  <div class="relative z-10 flex h-screen">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="nav-logo">
+        <div class="nav-logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--sidebar-active)"/></svg></div>
+        <span class="nav-logo-text">Birr'e</span>
+      </div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div><span class="nav-label">Dashboard</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></div><span class="nav-label">Transactions</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><span class="nav-label">Review</span></div>
+      <div class="nav-item active"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg></div><span class="nav-label">Plans</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><span class="nav-label">Tax</span></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-item" onclick="toggleTheme()" style="margin-bottom:4px;">
+        <div class="nav-icon"><span id="toggle-icon" style="font-size:14px;">🌙</span></div>
+        <span class="nav-label" id="toggle-label">Dark Mode</span>
+      </div>
+      <div class="nav-item" style="margin-bottom:4px;"><div class="nav-icon"><div id="ghostAvatar" class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--sidebar-active-bg);color:var(--sidebar-active);transition:background 0.25s,color 0.25s;">L</div></div><span class="nav-label" style="font-size:12px;flex:1;">Leul</span><button id="ghostBtn" onclick="event.stopPropagation();toggleGhost()" class="nav-label" title="Privacy mode" style="width:22px;height:22px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;transition:color 0.15s;"></button></div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Header -->
+      <div class="flex-shrink-0 px-6 pt-6 pb-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold page-title">Plans</h1>
+            <p class="text-sm mt-0.5" style="color:var(--text-muted);">Track what you're saving toward</p>
+          </div>
+          <button class="btn-primary" onclick="openModal('modal-add-goal')" style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Add Goal
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div class="flex-1 overflow-y-auto px-6 pb-6 space-y-8">
+
+        <!-- ── ACTIVE GOALS ── -->
+        <div>
+          <p class="section-label mb-3">Active Goals</p>
+          <div class="goal-grid">
+
+            <!-- Vacation Fund -->
+            <div class="glass goal-card" onclick="openGoalDetail('🏖️','Vacation Fund','$2,400','$5,000','48%',48,'$325/mo','8 mo','Dec 2026')">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.18);display:flex;align-items:center;justify-content:center;font-size:18px;">🏖️</div>
+                  <div>
+                    <p class="font-semibold text-sm" style="color:var(--text-primary);">Vacation Fund</p>
+                  </div>
+                </div>
+                <span class="spill spill-warn">Behind</span>
+              </div>
+              <div class="mb-3">
+                <div class="flex justify-between items-end mb-1.5">
+                  <span class="text-xl font-bold accent-num gn">$2,400</span>
+                  <span class="text-xs" style="color:var(--text-muted);">of <span class="gn">$5,000</span></span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:48%;background:var(--warn);"></div>
+                </div>
+                <p class="text-xs mt-1.5" style="color:var(--text-muted);">48% · $2,600 to go</p>
+              </div>
+              <div class="flex items-center justify-between">
+                <div><p class="section-label">Monthly needed</p><p class="text-sm font-semibold mt-0.5 gn" style="color:var(--text-primary);">$325/mo</p></div>
+                <div style="text-align:right;"><p class="section-label">Target date</p><p class="text-sm font-semibold mt-0.5" style="color:var(--text-primary);">Dec 2026</p></div>
+              </div>
+            </div>
+
+            <!-- Emergency Fund -->
+            <div class="glass goal-card" onclick="openGoalDetail('🆘','Emergency Fund','$8,420','$15,000','56%',56,'$940/mo','7 mo','Dec 2026')">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.18);display:flex;align-items:center;justify-content:center;font-size:18px;">🆘</div>
+                  <div>
+                    <p class="font-semibold text-sm" style="color:var(--text-primary);">Emergency Fund</p>
+                  </div>
+                </div>
+                <span class="spill spill-ok">On Track</span>
+              </div>
+              <div class="mb-3">
+                <div class="flex justify-between items-end mb-1.5">
+                  <span class="text-xl font-bold accent-num gn">$8,420</span>
+                  <span class="text-xs" style="color:var(--text-muted);">of <span class="gn">$15,000</span></span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:56%;background:var(--accent);"></div>
+                </div>
+                <p class="text-xs mt-1.5" style="color:var(--text-muted);">56% · $6,580 to go</p>
+              </div>
+              <div class="flex items-center justify-between">
+                <div><p class="section-label">Monthly needed</p><p class="text-sm font-semibold mt-0.5 gn" style="color:var(--text-primary);">$940/mo</p></div>
+                <div style="text-align:right;"><p class="section-label">Target date</p><p class="text-sm font-semibold mt-0.5" style="color:var(--text-primary);">Dec 2026</p></div>
+              </div>
+            </div>
+
+            <!-- New Laptop -->
+            <div class="glass goal-card" onclick="openGoalDetail('💻','New Laptop','$800','$1,200','67%',67,'$133/mo','3 mo','Aug 2026')">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:12px;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.18);display:flex;align-items:center;justify-content:center;font-size:18px;">💻</div>
+                  <div>
+                    <p class="font-semibold text-sm" style="color:var(--text-primary);">New Laptop</p>
+                  </div>
+                </div>
+                <span class="spill spill-ok">On Track</span>
+              </div>
+              <div class="mb-3">
+                <div class="flex justify-between items-end mb-1.5">
+                  <span class="text-xl font-bold accent-num gn">$800</span>
+                  <span class="text-xs" style="color:var(--text-muted);">of <span class="gn">$1,200</span></span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:67%;background:var(--accent);"></div>
+                </div>
+                <p class="text-xs mt-1.5" style="color:var(--text-muted);">67% · $400 to go</p>
+              </div>
+              <div class="flex items-center justify-between">
+                <div><p class="section-label">Monthly needed</p><p class="text-sm font-semibold mt-0.5 gn" style="color:var(--text-primary);">$133/mo</p></div>
+                <div style="text-align:right;"><p class="section-label">Target date</p><p class="text-sm font-semibold mt-0.5" style="color:var(--text-primary);">Aug 2026</p></div>
+              </div>
+            </div>
+
+            <!-- Add new -->
+            <div class="add-goal-card" onclick="openModal('modal-add-goal')">
+              <div style="width:40px;height:40px;border-radius:12px;background:var(--hover-bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--text-muted);"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </div>
+              <p class="text-sm font-medium" style="color:var(--text-muted);">Add a new goal</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── WISHLIST ── -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="section-label">Wishlist</p>
+            </div>
+            <p class="text-xs" style="color:var(--text-muted);">No deadline · just things you want someday</p>
+          </div>
+          <div class="glass rounded-2xl overflow-hidden">
+
+            <div class="wish-row">
+              <div class="flex items-center gap-3">
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🎧</div>
+                <div>
+                  <p class="text-sm font-medium" style="color:var(--text-primary);">AirPods Pro</p>
+                  <p style="font-size:11px;color:var(--text-muted);">Added May 2026 · ~$249</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <p class="text-xs" style="color:var(--text-muted);">~1 month of misc budget</p>
+                <span class="spill spill-wish">Wishlist</span>
+                <button onclick="openModal('modal-add-goal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text-secondary);cursor:pointer;">→ Make Goal</button>
+              </div>
+            </div>
+
+            <div class="wish-row">
+              <div class="flex items-center gap-3">
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🚗</div>
+                <div>
+                  <p class="text-sm font-medium" style="color:var(--text-primary);">Car Down Payment</p>
+                  <p style="font-size:11px;color:var(--text-muted);">Added Apr 2026 · ~$8,000</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <p class="text-xs" style="color:var(--text-muted);">~20 months at current rate</p>
+                <span class="spill spill-wish">Wishlist</span>
+                <button onclick="openModal('modal-add-goal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text-secondary);cursor:pointer;">→ Make Goal</button>
+              </div>
+            </div>
+
+            <div class="wish-row" style="border-bottom:none;">
+              <div class="flex items-center gap-3">
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">💍</div>
+                <div>
+                  <p class="text-sm font-medium" style="color:var(--text-primary);">Engagement Ring</p>
+                  <p style="font-size:11px;color:var(--text-muted);">Added Mar 2026 · ~$5,000</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <p class="text-xs" style="color:var(--text-muted);">~13 months at current rate</p>
+                <span class="spill spill-wish">Wishlist</span>
+                <button onclick="openModal('modal-add-goal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text-secondary);cursor:pointer;">→ Make Goal</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('toggle-icon').textContent  = isDark ? '🌙' : '☀️';
+      document.getElementById('toggle-label').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function selectEmoji(btn) {
+      document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    // Simulated AI responses based on keywords in the input
+    const AI_RESPONSES = {
+      japan: {
+        icon: '✈️', name: 'Japan Trip', amount: '$3,500', months: 'Jun 2027',
+        suggestions: [
+          { label: 'Estimated cost', value: '~$3,500', note: 'flights + 10 days' },
+          { label: 'Suggested timeline', value: 'Jun 2027', note: '13 months away' },
+          { label: 'Monthly needed', value: '$170/mo', note: 'from your surplus' },
+        ],
+        insight: 'You have <strong>~$380/mo</strong> available after expenses. This goal is very doable — it would only use half your surplus.'
+      },
+      airpods: {
+        icon: '🎧', name: 'AirPods Pro', amount: '$249', months: null,
+        suggestions: [
+          { label: 'Estimated cost', value: '~$249', note: 'AirPods Pro (2nd gen)' },
+          { label: 'At your current rate', value: '~1 month', note: 'from misc budget' },
+          { label: 'Suggestion', value: 'Wishlist it', note: 'no real rush' },
+        ],
+        insight: 'This is a small purchase — you could cover it in <strong>1–2 months</strong> without changing anything. Saving it to wishlist makes sense unless you want it sooner.'
+      },
+      car: {
+        icon: '🚗', name: 'Car Down Payment', amount: '$8,000', months: null,
+        suggestions: [
+          { label: 'Estimated down payment', value: '~$8,000', note: '20% on a $40k car' },
+          { label: 'At $380/mo surplus', value: '~21 months', note: 'Dec 2027' },
+          { label: 'Monthly to hit in 1yr', value: '$667/mo', note: 'would need cuts' },
+        ],
+        insight: 'This is achievable but will take time. At your current surplus you\'d hit <strong>$8k by Dec 2027</strong>. To get there sooner, you\'d need to reduce Eating Out or Misc spending.'
+      },
+      default: {
+        icon: '🎯', name: null, amount: null, months: null,
+        suggestions: [
+          { label: 'Estimated cost', value: 'Unknown', note: 'I\'ll look it up' },
+          { label: 'Your monthly surplus', value: '~$380/mo', note: 'based on last 3 mo' },
+          { label: 'Rough timeline', value: 'TBD', note: 'fill in an amount' },
+        ],
+        insight: 'Based on your last 3 months, you have roughly <strong>$380/mo</strong> available after all expenses and savings. Tell me more about what you want and I can give a better estimate.'
+      }
+    };
+
+    function simulateAI() {
+      const text = document.getElementById('aiInput').value.toLowerCase();
+      let response = AI_RESPONSES.default;
+      if (text.includes('japan') || text.includes('trip') || text.includes('travel')) response = AI_RESPONSES.japan;
+      else if (text.includes('airpod') || text.includes('headphone') || text.includes('earbuds')) response = AI_RESPONSES.airpods;
+      else if (text.includes('car') || text.includes('vehicle')) response = AI_RESPONSES.car;
+
+      // Pre-fill form fields
+      if (response.name)   document.getElementById('goalName').value   = response.name;
+      if (response.amount) document.getElementById('targetAmt').value  = response.amount;
+      if (response.months) document.getElementById('targetDate').value = '';
+
+      // Build suggestion rows
+      const sugHTML = response.suggestions.map(s => `
+        <div class="ai-suggestion-row">
+          <div>
+            <p style="font-size:12px;color:var(--text-muted);">${s.label}</p>
+            <p style="font-size:10px;color:var(--text-muted);margin-top:1px;">${s.note}</p>
+          </div>
+          <p style="font-size:13px;font-weight:700;color:var(--violet);">${s.value}</p>
+        </div>
+      `).join('');
+      document.getElementById('aiSuggestions').innerHTML = sugHTML;
+      document.getElementById('aiInsight').innerHTML = response.insight;
+      document.getElementById('aiBubble').classList.add('show');
+    }
+
+    // Also trigger on Enter key in prompt
+    document.getElementById('aiInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); simulateAI(); }
+    });
+
+    function openGoalDetail(icon, name, saved, target, pct, pctNum, monthly, months, date) {
+      document.getElementById('detail-icon').textContent    = icon;
+      document.getElementById('detail-name').textContent    = name;
+      document.getElementById('detail-saved').textContent   = saved;
+      document.getElementById('detail-target').textContent  = target;
+      document.getElementById('detail-pct').textContent     = pct + ' complete';
+      document.getElementById('detail-bar').style.width     = pctNum + '%';
+      document.getElementById('detail-monthly').textContent = monthly;
+      document.getElementById('detail-months').textContent  = months;
+      document.getElementById('detail-date').textContent    = date;
+      ['detail-saved','detail-target','detail-monthly'].forEach(id=>{const el=document.getElementById(id);if(el){delete el.dataset.real;delete el.dataset.fake;}});
+      openModal('modal-goal-detail');
+      if(typeof _initGhost==='function') _initGhost();
+    }
+    const GHOST_MULT=(()=>{let m=parseFloat(sessionStorage.getItem('_gm')||'');if(!m||m<1.2||m>3){m=1.3+Math.random()*1.0;sessionStorage.setItem('_gm',m);}return m;})();
+    let ghostOn=sessionStorage.getItem('_go')==='1';
+    function _fakeVal(t){if(!t||t.includes('%'))return t;if(t.includes(' / '))return t.split(' / ').map(p=>_fakeVal(p.trim())).join(' / ');const ap=t.startsWith('~'),s=ap?t.slice(1):t,neg=s.startsWith('−')||s.startsWith('-'),pos=s.startsWith('+'),hr=s.endsWith('/hr'),mo=s.endsWith('/mo');const n=parseFloat(s.replace(/[^0-9.]/g,''));if(!n)return t;const f=n*GHOST_MULT,has$=s.includes('$'),hasDec=/\.\d{2}/.test(s);let fmt=has$?'$'+(hasDec?f.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','):Math.round(f).toLocaleString()):Math.round(f).toLocaleString();return(ap?'~':'')+(neg?'−':pos?'+':'')+fmt+(hr?'/hr':mo?'/mo':'');}
+    function _initGhost(){document.querySelectorAll('.gn').forEach(el=>{if(!el.dataset.real){el.dataset.real=el.textContent.trim();el.dataset.fake=_fakeVal(el.dataset.real);}});_applyGhost();}
+    function _applyGhost(){document.querySelectorAll('.gn').forEach(el=>{el.textContent=ghostOn?(el.dataset.fake||el.dataset.real):el.dataset.real;});const btn=document.getElementById('ghostBtn'),av=document.getElementById('ghostAvatar');if(btn){btn.innerHTML=ghostOn?'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>':'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';btn.style.color=ghostOn?'var(--violet)':'var(--sidebar-icon)';}if(av){av.style.background=ghostOn?'rgba(167,139,250,0.18)':'var(--sidebar-active-bg)';av.style.color=ghostOn?'var(--violet)':'var(--sidebar-active)';}}
+    function toggleGhost(){ghostOn=!ghostOn;sessionStorage.setItem('_go',ghostOn?'1':'0');_initGhost();}
+    _initGhost();
+
+    // ── AI Floating Panel ─────────────────────────────────────
+    let aiPanelOpen=false;
+    function toggleAiPanel(){aiPanelOpen=!aiPanelOpen;document.getElementById('aiPanel').style.right=aiPanelOpen?'0':'-400px';const f=document.getElementById('aiFab');f.style.transform=aiPanelOpen?'rotate(90deg) scale(0.9)':'';f.style.boxShadow=aiPanelOpen?'0 4px 16px rgba(167,139,250,0.2)':'0 8px 32px rgba(167,139,250,0.4)';}
+    function aiSelectPrompt(el){document.getElementById('aiPanelInput').value=el.textContent.trim();document.getElementById('aiPanelInput').focus();}
+    const AI_RESPONSES=['Based on your May transactions, Eating Out is your top variable category at $487 — up 23% from April.','You\'re saving about 25.5% of income this month — above the 20% target. Emergency Fund is your highest-impact goal right now.','I see 3 subscriptions with no activity this month: Duolingo Plus, Adobe CC, and Calm — about $47/mo combined.','Emergency Fund is on track to hit $15,000 by December 2026 at your current $940/mo pace.','Spending spikes in weeks 2–3 each month — likely dining and weekend activity. Front-loading savings on payday helps.','Bumping 401(k) from 3% to 6% would cost ~$87/paycheck but adds ~$1,044/year in tax-deferred growth.'];
+    let aiMockIdx=0;
+    function sendAiMsg(){const input=document.getElementById('aiPanelInput'),text=input.value.trim();if(!text)return;const msgs=document.getElementById('aiMessages');const uDiv=document.createElement('div');uDiv.style.cssText='display:flex;justify-content:flex-end;';uDiv.innerHTML=`<div style="max-width:84%;padding:9px 13px;border-radius:13px 13px 3px 13px;background:var(--accent-bg);border:1px solid var(--accent-border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.5;">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p></div>`;msgs.appendChild(uDiv);input.value='';input.style.height='auto';msgs.scrollTop=msgs.scrollHeight;const tDiv=document.createElement('div');tDiv.id='aiTyping';tDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';tDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);display:flex;gap:4px;align-items:center;"><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.2s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.4s;display:inline-block;"></span></div>`;msgs.appendChild(tDiv);msgs.scrollTop=msgs.scrollHeight;setTimeout(()=>{const t=document.getElementById('aiTyping');if(t)t.remove();const resp=AI_RESPONSES[aiMockIdx%AI_RESPONSES.length];aiMockIdx++;const aDiv=document.createElement('div');aDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';aDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="max-width:88%;padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.65;">${resp}</p><p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic;">Mockup — real app calls Claude API with your live data.</p></div>`;msgs.appendChild(aDiv);msgs.scrollTop=msgs.scrollHeight;},1000);}
+  </script>
+<!-- ── AI FLOATING PANEL ── -->
+<button id="aiFab" onclick="toggleAiPanel()" title="Ask Birr'e AI" style="position:fixed;bottom:24px;right:24px;z-index:300;width:52px;height:52px;border-radius:50%;border:none;background:var(--violet);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(167,139,250,0.4);transition:transform 0.25s,box-shadow 0.25s;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+<div id="aiPanel" style="position:fixed;top:0;right:-400px;width:380px;height:100vh;z-index:299;background:var(--bg-card);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:-8px 0 32px rgba(0,0,0,0.12);">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
+      <div><p style="font-size:13px;font-weight:700;color:var(--text-primary);">Birr'e AI</p><p style="font-size:11px;color:var(--text-muted);">Plans · goal progress and savings pace</p></div>
+    </div>
+    <button onclick="toggleAiPanel()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='none'">✕</button>
+  </div>
+  <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">Am I on track for all my goals?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">How can I reach Vacation Fund faster?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">Should I prioritize Emergency Fund?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">What's my realistic monthly savings capacity?</button>
+  </div>
+  <div id="aiMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:center;"><span style="font-size:11px;padding:4px 14px;border-radius:99px;background:var(--progress-bg);color:var(--text-muted);">3 active goals · on track for 2 of 3</span></div>
+  </div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea id="aiPanelInput" placeholder="Ask about your finances…" rows="1" style="flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-primary);font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color 0.15s;" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'" onfocus="this.style.borderColor='var(--violet-border)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiMsg();}"></textarea>
+      <button onclick="sendAiMsg()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--violet-border);background:var(--violet-bg);color:var(--violet);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='var(--violet)';this.querySelector('svg').setAttribute('fill','#fff')" onmouseout="this.style.background='var(--violet-bg)';this.querySelector('svg').setAttribute('fill','var(--violet)')"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">Mockup — real app uses Claude API with your live data.</p>
+  </div>
+</div>
+</body>
+</html>

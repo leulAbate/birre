@@ -1,6 +1,6 @@
 # Birr'e — Personal Finance Dashboard
 
-Track your net worth, spending, budgets, and savings goals — with secure, read-only connections to your bank accounts via Plaid.
+Track your spending, savings goals, taxes, and monthly progress — with your own data, entered manually or imported from CSV.
 
 ---
 
@@ -8,37 +8,23 @@ Track your net worth, spending, budgets, and savings goals — with secure, read
 
 | Feature | Description |
 |---|---|
-| **Dashboard** | Net worth snapshot, income vs. spending chart, recent transactions |
-| **Transactions** | Full searchable list with category and account filters |
-| **Budgets** | Per-category monthly limits with live progress bars |
-| **Accounts** | All connected bank, credit, and investment accounts in one view |
-| **Goals** | Savings goals with progress tracking, target dates, and AI advisor |
-| **Connections** | Connect and manage bank accounts via Plaid |
+| **Dashboard** | Net worth, monthly cash flow, top expenses, upcoming subscriptions |
+| **Transactions** | Full searchable list. Add one at a time, paste a bulk batch, or upload a CSV |
+| **Review** | Pulse score, goal vs. actual, 4-month trends, savings rate, monthly notes |
+| **Plans** | Savings goals — progress tracked automatically by tagging savings transactions |
+| **Tax** | Paycheck decoder, take-home calculator, US 2025 bracket visualizer |
+| **AI Assistant** | Context-aware Claude chat on every page, with your real numbers loaded |
+| **Ghost Mode** | Privacy toggle that randomizes visible dollar amounts (useful for screenshots) |
 
 ---
 
 ## Tech Stack
 
-- **Frontend:** Next.js (App Router) + Tailwind CSS + shadcn/ui
-- **Charts:** recharts
+- **Framework:** Next.js 16 (App Router) + React 19
+- **Styling:** Tailwind CSS v4 + custom CSS variables for the dark / "old money" light themes
 - **Auth + Database:** Supabase (PostgreSQL + Row Level Security)
-- **Financial data:** Plaid API (read-only)
-- **AI Advisor:** Claude Sonnet (Anthropic)
+- **AI:** Claude (Anthropic SDK, streaming)
 - **Deployment:** Vercel
-
----
-
-## Security Model
-
-Bank connections are **read-only** by design:
-
-- Only Plaid read products enabled: `transactions`, `balance`, `investments`, `liabilities`
-- Money-movement products (`payment_initiation`, `transfer`) are never requested
-- Plaid access tokens stored server-side only — the browser never sees them
-- Column-level database permissions block the client from reading tokens even if RLS is bypassed
-- All financial API calls happen in server-only routes
-- Every table has Row Level Security: users can only access their own data
-- Plaid webhooks are signature-verified before processing
 
 ---
 
@@ -47,26 +33,46 @@ Bank connections are **read-only** by design:
 ```
 src/
 ├── app/
-│   ├── (auth)/           # login + signup
-│   ├── (app)/            # authenticated pages
-│   └── api/plaid/        # server-only API routes
+│   ├── (auth)/                 # login + signup (already scaffolded)
+│   ├── (app)/                  # authenticated pages share a layout
+│   │   ├── dashboard/
+│   │   ├── transactions/
+│   │   ├── review/
+│   │   ├── plans/
+│   │   └── tax/
+│   ├── api/ai/chat/            # streaming Anthropic endpoint
+│   └── globals.css             # design tokens (CSS vars), fonts
+├── components/                 # organized by feature
+│   ├── shell/                  # sidebar, theme toggle, ghost toggle, AI panel
+│   ├── transactions/
+│   ├── plans/
+│   ├── review/
+│   ├── dashboard/
+│   └── tax/
 ├── lib/
-│   ├── supabase/         # browser + server clients
-│   ├── plaid/            # Plaid client + sync logic
-│   └── calculations/     # pure business logic (net worth, cash flow, budgets)
-└── components/           # UI components organized by feature
+│   ├── supabase/               # browser + server clients
+│   ├── calculations/           # pure business logic
+│   ├── ai/                     # per-page system prompts + context builders
+│   └── types.ts                # TS types mirroring the DB schema
+└── server/actions/             # server actions for mutations
 supabase/
-└── migrations/           # SQL schema + RLS policies
+└── migrations/                 # SQL schema + RLS policies
 ```
+
+The single rule worth knowing: **transactions are the source of truth.** Every page reads from the `transactions` table — dashboard cards, monthly aggregates, goal progress, tax YTD numbers. No duplicated state.
 
 ---
 
 ## Setup
 
 You will need:
-- A [Supabase](https://supabase.com) project
-- A [Plaid](https://plaid.com) developer account (sandbox is free)
+- A [Supabase](https://supabase.com) project (free tier is fine)
 - An [Anthropic](https://console.anthropic.com) API key
-- A [Vercel](https://vercel.com) account for deployment
+- A [Vercel](https://vercel.com) account for deployment (optional, for hosting)
 
-Copy `.env.example` to `.env.local` and fill in your keys before running locally.
+1. `cp .env.example .env.local` and fill in your keys
+2. Apply the schema: paste `supabase/migrations/001_init.sql` into Supabase SQL editor, or use `supabase db push` if you have the CLI
+3. `npm install`
+4. `npm run dev` and visit `http://localhost:3000`
+
+Sign up the first time; subsequent visits use the same account.

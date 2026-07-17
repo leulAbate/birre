@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birr'e — Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600&display=swap');
+
+    :root, [data-theme="dark"] {
+      --bg: #080e0a; --bg-card: rgba(255,255,255,0.04); --bg-card-solid: #0d1a10;
+      --border: rgba(255,255,255,0.08); --border-top: rgba(255,255,255,0.14);
+      --text-primary: #e8f0ea; --text-secondary: rgba(255,255,255,0.45); --text-muted: rgba(255,255,255,0.25);
+      --accent: #34d399; --accent-bg: rgba(52,211,153,0.10); --accent-border: rgba(52,211,153,0.22);
+      --accent-btn-from: #34d399; --accent-btn-to: #10b981; --accent-btn-text: #000;
+      --warn: #fbbf24; --over: #f87171; --violet: #a78bfa; --violet-bg: rgba(167,139,250,0.10); --violet-border: rgba(167,139,250,0.22);
+      --progress-bg: rgba(255,255,255,0.06); --hover-bg: rgba(255,255,255,0.04);
+      --heading-font: 'Inter', sans-serif;
+      --sidebar-bg: #060c08; --sidebar-border: rgba(255,255,255,0.06);
+      --sidebar-icon: rgba(255,255,255,0.32); --sidebar-icon-hover: rgba(255,255,255,0.72);
+      --sidebar-active-bg: rgba(52,211,153,0.14); --sidebar-active: #34d399;
+      --sidebar-label: rgba(255,255,255,0.75);
+      --modal-bg: #0d1a10; --modal-shadow: rgba(0,0,0,0.7);
+      --income-color: #34d399; --expense-color: #f87171;
+      --ok-bg: rgba(52,211,153,0.08); --warn-bg: rgba(251,191,36,0.08); --over-bg: rgba(248,113,113,0.08);
+    }
+    [data-theme="light"] {
+      --bg: #f0e9da; --bg-card: rgba(255,252,244,0.78); --bg-card-solid: #faf7f0;
+      --border: rgba(120,90,50,0.13); --border-top: rgba(255,255,255,0.88);
+      --text-primary: #271a08; --text-secondary: rgba(39,26,8,0.52); --text-muted: rgba(39,26,8,0.32);
+      --accent: #8c6d1f; --accent-bg: rgba(140,109,31,0.09); --accent-border: rgba(140,109,31,0.22);
+      --accent-btn-from: #a07c28; --accent-btn-to: #7a5c14; --accent-btn-text: #fff;
+      --warn: #b45309; --over: #b91c1c; --violet: #5b3fa6; --violet-bg: rgba(91,63,166,0.08); --violet-border: rgba(91,63,166,0.2);
+      --progress-bg: rgba(120,90,50,0.10); --hover-bg: rgba(120,90,50,0.06);
+      --heading-font: 'Playfair Display', serif;
+      --sidebar-bg: #1a2235; --sidebar-border: rgba(255,255,255,0.07);
+      --sidebar-icon: rgba(200,190,170,0.45); --sidebar-icon-hover: rgba(220,210,190,0.85);
+      --sidebar-active-bg: rgba(200,168,90,0.18); --sidebar-active: #c8a85a;
+      --sidebar-label: rgba(220,210,190,0.85);
+      --modal-bg: #faf7f0; --modal-shadow: rgba(80,50,20,0.25);
+      --income-color: #166534; --expense-color: #b91c1c;
+      --ok-bg: rgba(22,101,52,0.07); --warn-bg: rgba(180,83,9,0.07); --over-bg: rgba(185,28,28,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-primary); height: 100vh; overflow: hidden; transition: background 0.35s, color 0.35s; }
+
+    .bg-blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+    :root .blob1, [data-theme="dark"] .blob1 { background: rgba(6,78,59,0.35); }
+    :root .blob2, [data-theme="dark"] .blob2 { background: rgba(6,78,59,0.18); }
+    :root .blob3, [data-theme="dark"] .blob3 { background: rgba(76,29,149,0.18); }
+    [data-theme="light"] .blob1 { background: rgba(180,148,80,0.18) !important; }
+    [data-theme="light"] .blob2 { background: rgba(160,120,60,0.12) !important; }
+    [data-theme="light"] .blob3 { background: rgba(26,34,53,0.06) !important; }
+
+    .glass { background: var(--bg-card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--border); border-top-color: var(--border-top); transition: background 0.35s, border-color 0.35s; }
+    [data-theme="light"] .glass { box-shadow: 0 2px 24px rgba(120,90,50,0.08), inset 0 1px 0 rgba(255,255,255,0.75); }
+
+    /* Sidebar */
+    #sidebar { width: 64px; flex-shrink: 0; height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); display: flex; flex-direction: column; align-items: stretch; padding: 16px 0; gap: 4px; overflow: hidden; transition: width 0.25s cubic-bezier(0.4,0,0.2,1), background 0.35s; }
+    #sidebar:hover { width: 204px; }
+    .nav-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 16px; overflow: hidden; }
+    .nav-logo-icon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--sidebar-active-bg); border: 1px solid var(--sidebar-border); }
+    .nav-logo-text { font-family: var(--heading-font); font-size: 16px; font-weight: 600; color: var(--sidebar-active); white-space: nowrap; opacity: 0; transition: opacity 0.15s 0.08s; }
+    #sidebar:hover .nav-logo-text { opacity: 1; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 44px; border-radius: 12px; margin: 0 8px; cursor: pointer; overflow: hidden; color: var(--sidebar-icon); transition: background 0.18s, color 0.18s; }
+    .nav-item:hover { background: var(--hover-bg); color: var(--sidebar-icon-hover); }
+    .nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active); }
+    .nav-icon { flex-shrink: 0; width: 20px; display: flex; justify-content: center; }
+    .nav-label { font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--sidebar-label); opacity: 0; transition: opacity 0.15s 0.08s; }
+    .nav-item.active .nav-label { color: var(--sidebar-active); }
+    #sidebar:hover .nav-label { opacity: 1; }
+    .nav-spacer { flex: 1; }
+
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .page-title { font-family: var(--heading-font); }
+    [data-theme="dark"]  .accent-num { color: var(--accent); text-shadow: 0 0 28px rgba(52,211,153,0.55); }
+    [data-theme="light"] .accent-num { color: var(--accent); }
+
+    /* Month nav */
+    .month-nav-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+    .month-nav-btn:hover { background: var(--hover-bg); color: var(--text-primary); }
+    .month-nav-btn:disabled { opacity: 0.25; cursor: default; }
+    .month-label-btn { background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: background 0.15s; }
+    .month-label-btn:hover { background: var(--hover-bg); }
+    .month-picker-cell { padding: 7px 4px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; background: transparent; color: var(--text-secondary); transition: background 0.15s, color 0.15s; }
+    .month-picker-cell:hover { background: var(--hover-bg); color: var(--text-primary); }
+    .month-picker-cell.selected { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); font-weight: 600; }
+    .month-picker-cell.future { opacity: 0.25; cursor: default; pointer-events: none; }
+
+    /* Theme toggle */
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* Pill / spill */
+    .spill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+    .spill-ok   { color: var(--accent); background: var(--ok-bg);   border-color: var(--accent-border); }
+    .spill-warn { color: var(--warn);   background: var(--warn-bg); border-color: rgba(251,191,36,0.25); }
+    .spill-over { color: var(--over);   background: var(--over-bg); border-color: rgba(248,113,113,0.25); }
+
+    /* Progress */
+    .progress-track { height: 4px; background: var(--progress-bg); border-radius: 99px; overflow: hidden; margin-top: 5px; }
+    .progress-fill  { height: 100%; border-radius: 99px; }
+
+    /* Review budget table */
+    .review-table { width: 100%; border-collapse: collapse; }
+    .review-table th { text-align: left; padding: 7px 14px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .review-table th:not(:first-child) { text-align: right; }
+    .review-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+    [data-theme="light"] .review-table td { border-bottom-color: rgba(120,90,50,0.05); }
+    .review-table tr:last-child td { border-bottom: none; }
+    .tbl-section td { padding: 14px 14px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); border-bottom: none; }
+    .tbl-subtotal td { padding: 10px 14px; font-size: 12px; font-weight: 700; border-top: 1px solid var(--border); border-bottom: none; background: var(--hover-bg); }
+    .review-table td:not(:first-child):not(.tbl-section td) { text-align: right; }
+    .delta-pos { color: var(--accent); font-size: 11px; font-weight: 600; }
+    .delta-neg { color: var(--over);   font-size: 11px; font-weight: 600; }
+    .delta-neu { color: var(--text-muted); font-size: 11px; }
+
+    /* Notes */
+    .notes-area { width: 100%; min-height: 90px; resize: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-primary); outline: none; transition: border-color 0.15s; line-height: 1.6; }
+    [data-theme="light"] .notes-area { background: rgba(255,252,244,0.5); }
+    .notes-area:focus { border-color: var(--accent-border); }
+    .notes-area::placeholder { color: var(--text-muted); }
+
+    /* MoM row */
+    .mom-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); }
+    .mom-row:last-child { border-bottom: none; }
+
+    /* Pulse ring */
+    .pulse-ring { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+    .pulse-ring svg { transform: rotate(-90deg); }
+    .pulse-ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+
+    /* AI insight feed */
+    .insight-item { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 11px; transition: background 0.15s; }
+    .insight-item:hover { background: var(--hover-bg); }
+    .insight-item:last-child { border-bottom: none; }
+    .insight-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+    /* Sparklines */
+    .spark { display: flex; align-items: flex-end; gap: 4px; height: 26px; }
+    .spark-bar { flex: 1; border-radius: 3px 3px 0 0; min-width: 10px; }
+
+    /* 4-month stacked bars */
+    .month-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .month-stack { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 72px; gap: 2px; width: 36px; }
+    .stack-seg { width: 36px; border-radius: 3px; }
+    @keyframes typing { 0%,60%,100%{opacity:0.2;transform:translateY(0)} 30%{opacity:1;transform:translateY(-3px)} }
+    .ai-prompt-chip { padding:5px 11px;border-radius:99px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;text-align:left; }
+    .ai-prompt-chip:hover { border-color:var(--violet-border);color:var(--violet);background:var(--violet-bg); }
+  </style>
+</head>
+<body>
+
+  <div class="bg-blob blob1 w-[500px] h-[500px]" style="top:-100px;left:80px;"></div>
+  <div class="bg-blob blob2 w-[350px] h-[350px]" style="bottom:-60px;right:200px;"></div>
+  <div class="bg-blob blob3 w-[280px] h-[280px]" style="top:35%;right:80px;"></div>
+
+  <!-- Month Picker Popover -->
+  <div id="monthPickerOverlay" onclick="closeMonthPicker()" style="display:none;position:fixed;inset:0;z-index:200;">
+    <div onclick="event.stopPropagation()" id="monthPickerPanel" style="position:absolute;background:var(--modal-bg);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 24px 64px var(--modal-shadow);backdrop-filter:blur(24px);min-width:240px;">
+      <div class="flex items-center justify-between mb-3">
+        <button onclick="shiftPickerYear(-1)" class="month-nav-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+        <span id="pickerYear" style="font-weight:600;color:var(--text-primary);font-size:14px;">2026</span>
+        <button onclick="shiftPickerYear(1)" class="month-nav-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
+      </div>
+      <div id="monthGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
+    </div>
+  </div>
+
+  <div class="relative z-10 flex h-screen">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="nav-logo">
+        <div class="nav-logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--sidebar-active)"/></svg></div>
+        <span class="nav-logo-text">Birr'e</span>
+      </div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div><span class="nav-label">Dashboard</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></div><span class="nav-label">Transactions</span></div>
+      <div class="nav-item active"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div><span class="nav-label">Review</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg></div><span class="nav-label">Plans</span></div>
+      <div class="nav-item"><div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div><span class="nav-label">Tax</span></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-item" onclick="toggleTheme()" style="margin-bottom:4px;">
+        <div class="nav-icon"><span id="toggle-icon" style="font-size:14px;">🌙</span></div>
+        <span class="nav-label" id="toggle-label">Dark Mode</span>
+      </div>
+      <div class="nav-item" style="margin-bottom:4px;"><div class="nav-icon"><div id="ghostAvatar" class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--sidebar-active-bg);color:var(--sidebar-active);transition:background 0.25s,color 0.25s;">L</div></div><span class="nav-label" style="font-size:12px;flex:1;">Leul</span><button id="ghostBtn" onclick="event.stopPropagation();toggleGhost()" class="nav-label" title="Privacy mode" style="width:22px;height:22px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;transition:color 0.15s;"></button></div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Fixed header -->
+      <div class="flex-shrink-0 px-6 pt-6 pb-3 space-y-3">
+
+        <!-- Title row -->
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-1 mb-1">
+              <button onclick="shiftMonth(-1)" class="month-nav-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+              <button onclick="openMonthPicker()" class="section-label month-label-btn" id="monthLabel">May 2026</button>
+              <button onclick="shiftMonth(1)" class="month-nav-btn" id="nextMonthBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
+            </div>
+            <h1 class="text-2xl font-bold page-title">Review</h1>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-semibold" style="background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.25);">In Progress</span>
+        </div>
+
+        <!-- Summary strip -->
+        <div class="flex gap-3">
+          <div class="glass rounded-2xl px-5 py-3 flex-1">
+            <p class="section-label mb-0.5">Income</p>
+            <p class="text-lg font-bold gn" style="color:var(--income-color);">$5,120</p>
+          </div>
+          <div class="glass rounded-2xl px-5 py-3 flex-1">
+            <p class="section-label mb-0.5">Total Spent</p>
+            <p class="text-lg font-bold gn" style="color:var(--expense-color);">$3,814</p>
+          </div>
+          <div class="glass rounded-2xl px-5 py-3 flex-1">
+            <p class="section-label mb-0.5">Saved</p>
+            <p class="text-lg font-bold accent-num gn">$1,306</p>
+            <p class="text-xs mt-0.5" style="color:var(--text-muted);">25.5% of income</p>
+          </div>
+          <div class="glass rounded-2xl px-5 py-3 flex-1">
+            <p class="section-label mb-0.5">Budget Used</p>
+            <p class="text-lg font-bold gn" style="color:var(--warn);">$4,560 / $5,120</p>
+            <p class="text-xs mt-0.5" style="color:var(--text-muted);">89% of income</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div class="flex-1 overflow-y-auto px-6 pb-6">
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;">
+
+          <!-- ── LEFT ── -->
+          <div class="space-y-4">
+
+            <!-- Pulse + Grade card -->
+            <div class="glass rounded-2xl p-5">
+              <div class="flex items-center gap-5">
+                <div class="pulse-ring">
+                  <svg width="96" height="96" viewBox="0 0 96 96">
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="url(#pg)" stroke-width="8"
+                      stroke-dasharray="251" stroke-dashoffset="70" stroke-linecap="round"/>
+                    <defs>
+                      <linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#34d399"/>
+                        <stop offset="100%" stop-color="#fbbf24"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="pulse-ring-label">
+                    <span style="font-size:22px;font-weight:800;color:var(--text-primary);line-height:1;">72</span>
+                    <span style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--text-muted);text-transform:uppercase;">Pulse</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <p class="text-base font-bold">Decent month</p>
+                    <span class="spill spill-warn" style="font-size:9px;">B−</span>
+                    <span class="spill spill-warn" style="font-size:9px;margin-left:2px;">−4 vs Apr</span>
+                  </div>
+                  <p class="text-xs mb-3" style="color:var(--text-muted);line-height:1.5;">Wants overspend and a missed investment pulled the score down.</p>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2"><span style="color:var(--accent);font-size:12px;">✓</span><p class="text-xs" style="color:var(--text-secondary);">All fixed costs paid on time</p></div>
+                    <div class="flex items-center gap-2"><span style="color:var(--accent);font-size:12px;">✓</span><p class="text-xs" style="color:var(--text-secondary);">Savings transfer completed</p></div>
+                    <div class="flex items-center gap-2"><span style="color:var(--over);font-size:12px;">✗</span><p class="text-xs" style="color:var(--text-secondary);">Eating Out $193 over budget</p></div>
+                    <div class="flex items-center gap-2"><span style="color:var(--over);font-size:12px;">✗</span><p class="text-xs" style="color:var(--text-secondary);">Missed $200 investment contribution</p></div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr;gap:8px;min-width:110px;">
+                  <div>
+                    <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Needs</span><span style="color:var(--accent);font-weight:600;">100%</span></div>
+                    <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:100%;background:var(--accent);"></div></div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Savings rate</span><span style="color:var(--warn);font-weight:600;">25.5%</span></div>
+                    <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:51%;background:var(--warn);"></div></div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Budget</span><span style="color:var(--warn);font-weight:600;">77%</span></div>
+                    <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:77%;background:var(--warn);"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Goal vs Actual budget table -->
+            <div class="glass rounded-2xl overflow-hidden">
+              <table class="review-table">
+                <thead>
+                  <tr>
+                    <th style="width:38%;">Category</th>
+                    <th>Goal</th>
+                    <th>Actual</th>
+                    <th>+/−</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="tbl-section"><td colspan="5">Needs</td></tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🏠</span><span class="text-sm font-medium">Rent / Mortgage</span></div><div class="progress-track"><div class="progress-fill" style="width:100%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$1,450</td>
+                    <td class="text-sm font-semibold">$1,450</td>
+                    <td class="delta-neu">$0</td>
+                    <td><span class="spill spill-ok">On track</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>💡</span><span class="text-sm font-medium">Utilities</span></div><div class="progress-track"><div class="progress-fill" style="width:88%;background:var(--warn);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$110</td>
+                    <td class="text-sm font-semibold">$97</td>
+                    <td class="delta-pos">+$13</td>
+                    <td><span class="spill spill-ok">$13 left</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🛒</span><span class="text-sm font-medium">Groceries</span></div><div class="progress-track"><div class="progress-fill" style="width:74%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$200</td>
+                    <td class="text-sm font-semibold">$148</td>
+                    <td class="delta-pos">+$52</td>
+                    <td><span class="spill spill-ok">$52 left</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🎓</span><span class="text-sm font-medium">Loan Payments</span></div><div class="progress-track"><div class="progress-fill" style="width:100%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$1,300</td>
+                    <td class="text-sm font-semibold">$1,300</td>
+                    <td class="delta-neu">$0</td>
+                    <td><span class="spill spill-ok">On track</span></td>
+                  </tr>
+                  <tr class="tbl-subtotal">
+                    <td style="color:var(--text-secondary);">Total Needs</td>
+                    <td style="color:var(--text-secondary);">$3,060</td>
+                    <td>$2,995</td>
+                    <td class="delta-pos">+$65</td>
+                    <td></td>
+                  </tr>
+
+                  <tr class="tbl-section"><td colspan="5">Wants</td></tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🍜</span><span class="text-sm font-medium">Eating Out</span></div><div class="progress-track"><div class="progress-fill" style="width:100%;background:var(--over);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$130</td>
+                    <td class="text-sm font-semibold" style="color:var(--over);">$323</td>
+                    <td class="delta-neg">−$193</td>
+                    <td><span class="spill spill-over">$193 over</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🚗</span><span class="text-sm font-medium">Ride Share</span></div><div class="progress-track"><div class="progress-fill" style="width:78%;background:var(--warn);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$160</td>
+                    <td class="text-sm font-semibold">$124</td>
+                    <td class="delta-pos">+$36</td>
+                    <td><span class="spill spill-warn">$36 left</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>📱</span><span class="text-sm font-medium">Subscriptions</span></div><div class="progress-track"><div class="progress-fill" style="width:54%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$50</td>
+                    <td class="text-sm font-semibold">$27</td>
+                    <td class="delta-pos">+$23</td>
+                    <td><span class="spill spill-ok">$23 left</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🎲</span><span class="text-sm font-medium">Misc</span></div><div class="progress-track"><div class="progress-fill" style="width:88%;background:var(--warn);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$160</td>
+                    <td class="text-sm font-semibold">$140</td>
+                    <td class="delta-pos">+$20</td>
+                    <td><span class="spill spill-warn">$20 left</span></td>
+                  </tr>
+                  <tr class="tbl-subtotal">
+                    <td style="color:var(--text-secondary);">Total Wants</td>
+                    <td style="color:var(--text-secondary);">$500</td>
+                    <td style="color:var(--over);">$614</td>
+                    <td class="delta-neg">−$114</td>
+                    <td></td>
+                  </tr>
+
+                  <tr class="tbl-section"><td colspan="5">Savings</td></tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>🌱</span><span class="text-sm font-medium">Marcus Savings</span></div><div class="progress-track"><div class="progress-fill" style="width:100%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$350</td>
+                    <td class="text-sm font-semibold">$350</td>
+                    <td class="delta-neu">$0</td>
+                    <td><span class="spill spill-ok">Done</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="flex items-center gap-2"><span>📈</span><span class="text-sm font-medium">Investments</span></div><div class="progress-track"><div class="progress-fill" style="width:0%;background:var(--accent);"></div></div></td>
+                    <td class="text-sm" style="color:var(--text-secondary);">$200</td>
+                    <td class="text-sm font-semibold" style="color:var(--text-muted);">$0</td>
+                    <td class="delta-neg">−$200</td>
+                    <td><span class="spill spill-over">Missed</span></td>
+                  </tr>
+                  <tr class="tbl-subtotal">
+                    <td style="color:var(--text-secondary);">Total Savings</td>
+                    <td style="color:var(--text-secondary);">$550</td>
+                    <td>$350</td>
+                    <td class="delta-neg">−$200</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 4-month spending trend -->
+            <div class="glass rounded-2xl p-5">
+              <p class="section-label mb-4">Total Spending — Last 4 Months</p>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;">
+                <div class="month-col">
+                  <div class="month-stack">
+                    <div class="stack-seg" style="height:14px;background:rgba(248,113,113,0.45);"></div>
+                    <div class="stack-seg" style="height:34px;background:rgba(251,191,36,0.45);"></div>
+                    <div class="stack-seg" style="height:24px;background:rgba(52,211,153,0.45);border-radius:3px 3px 0 0;"></div>
+                  </div>
+                  <p class="text-xs font-semibold gn" style="color:var(--text-secondary);">$3,420</p>
+                  <p style="font-size:10px;color:var(--text-muted);">Feb</p>
+                </div>
+                <div class="month-col">
+                  <div class="month-stack">
+                    <div class="stack-seg" style="height:12px;background:rgba(248,113,113,0.45);"></div>
+                    <div class="stack-seg" style="height:38px;background:rgba(251,191,36,0.45);"></div>
+                    <div class="stack-seg" style="height:22px;background:rgba(52,211,153,0.45);border-radius:3px 3px 0 0;"></div>
+                  </div>
+                  <p class="text-xs font-semibold gn" style="color:var(--text-secondary);">$3,610</p>
+                  <p style="font-size:10px;color:var(--text-muted);">Mar</p>
+                </div>
+                <div class="month-col">
+                  <div class="month-stack">
+                    <div class="stack-seg" style="height:10px;background:rgba(248,113,113,0.45);"></div>
+                    <div class="stack-seg" style="height:32px;background:rgba(251,191,36,0.45);"></div>
+                    <div class="stack-seg" style="height:22px;background:rgba(52,211,153,0.45);border-radius:3px 3px 0 0;"></div>
+                  </div>
+                  <p class="text-xs font-semibold gn" style="color:var(--text-secondary);">$3,550</p>
+                  <p style="font-size:10px;color:var(--text-muted);">Apr</p>
+                </div>
+                <div class="month-col">
+                  <div class="month-stack">
+                    <div class="stack-seg" style="height:26px;background:rgba(248,113,113,0.8);border:1px solid rgba(248,113,113,0.35);"></div>
+                    <div class="stack-seg" style="height:36px;background:rgba(251,191,36,0.7);border:1px solid rgba(251,191,36,0.35);"></div>
+                    <div class="stack-seg" style="height:22px;background:rgba(52,211,153,0.7);border:1px solid rgba(52,211,153,0.35);border-radius:3px 3px 0 0;"></div>
+                  </div>
+                  <p class="text-xs font-bold gn" style="color:var(--text-primary);">$3,814</p>
+                  <p style="font-size:10px;color:var(--text-muted);">May ●</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-5 mt-4">
+                <div class="flex items-center gap-2"><div style="width:9px;height:9px;border-radius:2px;background:rgba(52,211,153,0.6);"></div><span style="font-size:11px;color:var(--text-muted);">Needs</span></div>
+                <div class="flex items-center gap-2"><div style="width:9px;height:9px;border-radius:2px;background:rgba(251,191,36,0.6);"></div><span style="font-size:11px;color:var(--text-muted);">Wants</span></div>
+                <div class="flex items-center gap-2"><div style="width:9px;height:9px;border-radius:2px;background:rgba(248,113,113,0.6);"></div><span style="font-size:11px;color:var(--text-muted);">Overspend</span></div>
+              </div>
+            </div>
+
+            <!-- Month notes -->
+            <div class="glass rounded-2xl p-5">
+              <p class="section-label mb-3">Month Notes</p>
+              <textarea class="notes-area" placeholder="What happened this month? Big purchases, unexpected costs, wins…">Eating out went way over — had Nobu dinner for birthday + extra Uber Eats. Should cap eating out at $130 going forward. Missed investment contribution this month, will double up in June. Groceries and subscriptions both under budget which helped offset.</textarea>
+              <p class="text-xs mt-2" style="color:var(--text-muted);">Saved automatically</p>
+            </div>
+
+          </div><!-- /left -->
+
+          <!-- ── RIGHT ── -->
+          <div class="space-y-4">
+
+            <!-- AI Insights feed -->
+            <div class="glass rounded-2xl overflow-hidden">
+              <div class="flex items-center gap-2 px-4 py-3" style="border-bottom:1px solid var(--border);">
+                <div style="width:20px;height:20px;border-radius:6px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--violet)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                </div>
+                <p class="text-sm font-semibold">AI Insights</p>
+                <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">May 2026</span>
+              </div>
+              <div class="insight-item">
+                <div class="insight-dot" style="background:var(--over);box-shadow:0 0 6px var(--over);"></div>
+                <div>
+                  <p class="text-sm font-semibold">Eating Out 148% over budget</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">$323 vs $130 goal — highest in 4 months. One $180 dinner plus extra delivery orders.</p>
+                </div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-dot" style="background:var(--over);"></div>
+                <div>
+                  <p class="text-sm font-semibold">Missed $200 investment contribution</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">First miss since February. Consider doubling up in June to stay on track.</p>
+                </div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-dot" style="background:var(--warn);"></div>
+                <div>
+                  <p class="text-sm font-semibold">Ride share up 3 months in a row</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">$82 → $102 → $146 → $124. Still under $160 budget but worth watching.</p>
+                </div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-dot" style="background:var(--warn);"></div>
+                <div>
+                  <p class="text-sm font-semibold">Savings rate slipped to 25.5%</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">Down from 31.2% in April. The eating out overage came directly out of savings.</p>
+                </div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-dot" style="background:var(--accent);"></div>
+                <div>
+                  <p class="text-sm font-semibold">Groceries 26% under average</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">$148 vs 3-month average of $200 — partially offset the eating out overage.</p>
+                </div>
+              </div>
+              <div class="insight-item" style="background:rgba(167,139,250,0.04);">
+                <div class="insight-dot" style="background:var(--violet);"></div>
+                <div>
+                  <p class="text-sm font-semibold" style="color:var(--violet);">💡 Cap eating out → hit 30% savings</p>
+                  <p class="text-xs mt-1" style="color:var(--text-muted);line-height:1.5;">Staying at your $130 budget would push savings rate to 29.2% — right at target.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Category sparklines -->
+            <div class="glass rounded-2xl p-5">
+              <p class="section-label mb-4">Category Trends — 4 Months</p>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2"><span style="font-size:12px;">🍜</span><span class="text-xs font-medium" style="color:var(--text-secondary);">Eating Out</span></div>
+                    <span class="text-xs font-bold" style="color:var(--over);">↑ spiked</span>
+                  </div>
+                  <div class="spark">
+                    <div class="spark-bar" style="height:44%;background:rgba(248,113,113,0.4);"></div>
+                    <div class="spark-bar" style="height:55%;background:rgba(248,113,113,0.5);"></div>
+                    <div class="spark-bar" style="height:54%;background:rgba(248,113,113,0.6);"></div>
+                    <div class="spark-bar" style="height:100%;background:var(--over);"></div>
+                  </div>
+                  <div class="flex justify-between mt-1" style="font-size:10px;color:var(--text-muted);">
+                    <span class="gn">$143</span><span class="gn">$180</span><span class="gn">$176</span><span class="gn" style="color:var(--over);font-weight:700;">$323</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2"><span style="font-size:12px;">🚗</span><span class="text-xs font-medium" style="color:var(--text-secondary);">Ride Share</span></div>
+                    <span class="text-xs font-bold" style="color:var(--warn);">↑ creeping</span>
+                  </div>
+                  <div class="spark">
+                    <div class="spark-bar" style="height:51%;background:rgba(251,191,36,0.4);"></div>
+                    <div class="spark-bar" style="height:63%;background:rgba(251,191,36,0.5);"></div>
+                    <div class="spark-bar" style="height:91%;background:rgba(251,191,36,0.6);"></div>
+                    <div class="spark-bar" style="height:78%;background:var(--warn);"></div>
+                  </div>
+                  <div class="flex justify-between mt-1" style="font-size:10px;color:var(--text-muted);">
+                    <span class="gn">$82</span><span class="gn">$102</span><span class="gn">$146</span><span class="gn" style="color:var(--warn);font-weight:700;">$124</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2"><span style="font-size:12px;">🛒</span><span class="text-xs font-medium" style="color:var(--text-secondary);">Groceries</span></div>
+                    <span class="text-xs font-bold" style="color:var(--accent);">↓ improving</span>
+                  </div>
+                  <div class="spark">
+                    <div class="spark-bar" style="height:100%;background:rgba(52,211,153,0.4);"></div>
+                    <div class="spark-bar" style="height:85%;background:rgba(52,211,153,0.5);"></div>
+                    <div class="spark-bar" style="height:93%;background:rgba(52,211,153,0.5);"></div>
+                    <div class="spark-bar" style="height:74%;background:var(--accent);"></div>
+                  </div>
+                  <div class="flex justify-between mt-1" style="font-size:10px;color:var(--text-muted);">
+                    <span class="gn">$200</span><span class="gn">$170</span><span class="gn">$186</span><span class="gn" style="color:var(--accent);font-weight:700;">$148</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Savings rate trend -->
+            <div class="glass rounded-2xl p-5">
+              <p class="section-label mb-3">Savings Rate Trend</p>
+              <div class="space-y-2.5">
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">May 2026</span><span style="color:var(--warn);font-weight:600;">25.5%</span></div>
+                  <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:51%;background:var(--warn);"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Apr 2026</span><span style="color:var(--accent);font-weight:600;">31.2%</span></div>
+                  <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:62%;background:var(--accent);"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Mar 2026</span><span style="color:var(--accent);font-weight:600;">28.8%</span></div>
+                  <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:58%;background:var(--accent);"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1"><span style="color:var(--text-secondary);">Feb 2026</span><span style="color:var(--over);font-weight:600;">18.1%</span></div>
+                  <div class="progress-track" style="height:5px;"><div class="progress-fill" style="width:36%;background:var(--over);"></div></div>
+                </div>
+              </div>
+              <p class="text-xs mt-3" style="color:var(--text-muted);">Target: <span style="color:var(--text-secondary);font-weight:500;">30%</span></p>
+            </div>
+
+            <!-- Month-over-month -->
+            <div class="glass rounded-2xl p-5">
+              <p class="section-label mb-1">vs Last Month (Apr)</p>
+              <p class="text-xs mb-3" style="color:var(--text-muted);">How each category moved</p>
+              <div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">🍜</span><span class="text-xs" style="color:var(--text-secondary);">Eating Out</span></div><span class="text-xs font-semibold" style="color:var(--over);">↑ +$143 more</span></div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">🛒</span><span class="text-xs" style="color:var(--text-secondary);">Groceries</span></div><span class="text-xs font-semibold" style="color:var(--accent);">↓ −$38 less</span></div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">🚗</span><span class="text-xs" style="color:var(--text-secondary);">Ride Share</span></div><span class="text-xs font-semibold" style="color:var(--accent);">↓ −$22 less</span></div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">📱</span><span class="text-xs" style="color:var(--text-secondary);">Subscriptions</span></div><span class="text-xs font-semibold" style="color:var(--text-muted);">→ no change</span></div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">🎲</span><span class="text-xs" style="color:var(--text-secondary);">Misc</span></div><span class="text-xs font-semibold" style="color:var(--accent);">↓ −$55 less</span></div>
+                <div class="mom-row"><div class="flex items-center gap-2"><span style="font-size:13px;">🌱</span><span class="text-xs" style="color:var(--text-secondary);">Savings</span></div><span class="text-xs font-semibold" style="color:var(--text-muted);">→ no change</span></div>
+              </div>
+            </div>
+
+          </div><!-- /right -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('toggle-icon').textContent  = isDark ? '🌙' : '☀️';
+      document.getElementById('toggle-label').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+    }
+
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    let currentYear = 2026, currentMonth = 4, pickerYear = 2026;
+
+    function updateMonthLabel() {
+      document.getElementById('monthLabel').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+      const isCurrent = currentYear > now.getFullYear() || (currentYear === now.getFullYear() && currentMonth >= now.getMonth());
+      document.getElementById('nextMonthBtn').disabled = isCurrent;
+    }
+    function shiftMonth(dir) {
+      currentMonth += dir;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+      updateMonthLabel();
+    }
+    function openMonthPicker() {
+      pickerYear = currentYear; renderPickerGrid();
+      const rect  = document.getElementById('monthLabel').getBoundingClientRect();
+      const panel = document.getElementById('monthPickerPanel');
+      panel.style.top  = (rect.bottom + 8) + 'px';
+      panel.style.left = rect.left + 'px';
+      document.getElementById('monthPickerOverlay').style.display = 'block';
+    }
+    function closeMonthPicker() { document.getElementById('monthPickerOverlay').style.display = 'none'; }
+    function shiftPickerYear(dir) {
+      pickerYear = Math.min(pickerYear + dir, now.getFullYear());
+      renderPickerGrid();
+    }
+    function renderPickerGrid() {
+      document.getElementById('pickerYear').textContent = pickerYear;
+      const grid = document.getElementById('monthGrid');
+      grid.innerHTML = '';
+      MONTHS.forEach((m, i) => {
+        const isFuture   = pickerYear > now.getFullYear() || (pickerYear === now.getFullYear() && i > now.getMonth());
+        const isSelected = pickerYear === currentYear && i === currentMonth;
+        const btn = document.createElement('button');
+        btn.className   = 'month-picker-cell' + (isSelected ? ' selected' : '') + (isFuture ? ' future' : '');
+        btn.textContent = m;
+        btn.onclick     = () => { currentYear = pickerYear; currentMonth = i; updateMonthLabel(); closeMonthPicker(); };
+        grid.appendChild(btn);
+      });
+    }
+    updateMonthLabel();
+    const GHOST_MULT=(()=>{let m=parseFloat(sessionStorage.getItem('_gm')||'');if(!m||m<1.2||m>3){m=1.3+Math.random()*1.0;sessionStorage.setItem('_gm',m);}return m;})();
+    let ghostOn=sessionStorage.getItem('_go')==='1';
+    function _fakeVal(t){if(!t||t.includes('%'))return t;if(t.includes(' / '))return t.split(' / ').map(p=>_fakeVal(p.trim())).join(' / ');const ap=t.startsWith('~'),s=ap?t.slice(1):t,neg=s.startsWith('−')||s.startsWith('-'),pos=s.startsWith('+'),hr=s.endsWith('/hr'),mo=s.endsWith('/mo');const n=parseFloat(s.replace(/[^0-9.]/g,''));if(!n)return t;const f=n*GHOST_MULT,has$=s.includes('$'),hasDec=/\.\d{2}/.test(s);let fmt=has$?'$'+(hasDec?f.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','):Math.round(f).toLocaleString()):Math.round(f).toLocaleString();return(ap?'~':'')+(neg?'−':pos?'+':'')+fmt+(hr?'/hr':mo?'/mo':'');}
+    function _initGhost(){document.querySelectorAll('.gn').forEach(el=>{if(!el.dataset.real){el.dataset.real=el.textContent.trim();el.dataset.fake=_fakeVal(el.dataset.real);}});_applyGhost();}
+    function _applyGhost(){document.querySelectorAll('.gn').forEach(el=>{el.textContent=ghostOn?(el.dataset.fake||el.dataset.real):el.dataset.real;});const btn=document.getElementById('ghostBtn'),av=document.getElementById('ghostAvatar');if(btn){btn.innerHTML=ghostOn?'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>':'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';btn.style.color=ghostOn?'var(--violet)':'var(--sidebar-icon)';}if(av){av.style.background=ghostOn?'rgba(167,139,250,0.18)':'var(--sidebar-active-bg)';av.style.color=ghostOn?'var(--violet)':'var(--sidebar-active)';}}
+    function toggleGhost(){ghostOn=!ghostOn;sessionStorage.setItem('_go',ghostOn?'1':'0');_initGhost();}
+    _initGhost();
+
+    // ── AI Floating Panel ─────────────────────────────────────
+    let aiPanelOpen=false;
+    function toggleAiPanel(){aiPanelOpen=!aiPanelOpen;document.getElementById('aiPanel').style.right=aiPanelOpen?'0':'-400px';const f=document.getElementById('aiFab');f.style.transform=aiPanelOpen?'rotate(90deg) scale(0.9)':'';f.style.boxShadow=aiPanelOpen?'0 4px 16px rgba(167,139,250,0.2)':'0 8px 32px rgba(167,139,250,0.4)';}
+    function aiSelectPrompt(el){document.getElementById('aiPanelInput').value=el.textContent.trim();document.getElementById('aiPanelInput').focus();}
+    const AI_RESPONSES=['Based on your May transactions, Eating Out is your top variable category at $487 — up 23% from April.','You\'re saving about 25.5% of income this month — above the 20% target. Emergency Fund is your highest-impact goal right now.','I see 3 subscriptions with no activity this month: Duolingo Plus, Adobe CC, and Calm — about $47/mo combined.','Emergency Fund is on track to hit $15,000 by December 2026 at your current $940/mo pace.','Spending spikes in weeks 2–3 each month — likely dining and weekend activity. Front-loading savings on payday helps.','Bumping 401(k) from 3% to 6% would cost ~$87/paycheck but adds ~$1,044/year in tax-deferred growth.'];
+    let aiMockIdx=0;
+    function sendAiMsg(){const input=document.getElementById('aiPanelInput'),text=input.value.trim();if(!text)return;const msgs=document.getElementById('aiMessages');const uDiv=document.createElement('div');uDiv.style.cssText='display:flex;justify-content:flex-end;';uDiv.innerHTML=`<div style="max-width:84%;padding:9px 13px;border-radius:13px 13px 3px 13px;background:var(--accent-bg);border:1px solid var(--accent-border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.5;">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p></div>`;msgs.appendChild(uDiv);input.value='';input.style.height='auto';msgs.scrollTop=msgs.scrollHeight;const tDiv=document.createElement('div');tDiv.id='aiTyping';tDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';tDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);display:flex;gap:4px;align-items:center;"><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.2s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.4s;display:inline-block;"></span></div>`;msgs.appendChild(tDiv);msgs.scrollTop=msgs.scrollHeight;setTimeout(()=>{const t=document.getElementById('aiTyping');if(t)t.remove();const resp=AI_RESPONSES[aiMockIdx%AI_RESPONSES.length];aiMockIdx++;const aDiv=document.createElement('div');aDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';aDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="max-width:88%;padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.65;">${resp}</p><p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic;">Mockup — real app calls Claude API with your live data.</p></div>`;msgs.appendChild(aDiv);msgs.scrollTop=msgs.scrollHeight;},1000);}
+  </script>
+<!-- ── AI FLOATING PANEL ── -->
+<button id="aiFab" onclick="toggleAiPanel()" title="Ask Birr'e AI" style="position:fixed;bottom:24px;right:24px;z-index:300;width:52px;height:52px;border-radius:50%;border:none;background:var(--violet);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(167,139,250,0.4);transition:transform 0.25s,box-shadow 0.25s;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+<div id="aiPanel" style="position:fixed;top:0;right:-400px;width:380px;height:100vh;z-index:299;background:var(--bg-card);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:-8px 0 32px rgba(0,0,0,0.12);">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
+      <div><p style="font-size:13px;font-weight:700;color:var(--text-primary);">Birr'e AI</p><p style="font-size:11px;color:var(--text-muted);">Review · monthly performance breakdown</p></div>
+    </div>
+    <button onclick="toggleAiPanel()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='none'">✕</button>
+  </div>
+  <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">What drove spending up vs last month?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">How do I improve my Review score?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">Break down my savings rate trend</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">What should I focus on next month?</button>
+  </div>
+  <div id="aiMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:center;"><span style="font-size:11px;padding:4px 14px;border-radius:99px;background:var(--progress-bg);color:var(--text-muted);">May 2026 · 72/100 pulse · 25.5% savings rate</span></div>
+  </div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea id="aiPanelInput" placeholder="Ask about your finances…" rows="1" style="flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-primary);font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color 0.15s;" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'" onfocus="this.style.borderColor='var(--violet-border)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiMsg();}"></textarea>
+      <button onclick="sendAiMsg()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--violet-border);background:var(--violet-bg);color:var(--violet);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='var(--violet)';this.querySelector('svg').setAttribute('fill','#fff')" onmouseout="this.style.background='var(--violet-bg)';this.querySelector('svg').setAttribute('fill','var(--violet)')"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">Mockup — real app uses Claude API with your live data.</p>
+  </div>
+</div>
+</body>
+</html>

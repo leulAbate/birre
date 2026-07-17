@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birr'e — Tax</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600&display=swap');
+
+    :root, [data-theme="dark"] {
+      --bg: #080e0a; --bg-card: rgba(255,255,255,0.04); --bg-card-solid: #0d1a10;
+      --border: rgba(255,255,255,0.08); --border-top: rgba(255,255,255,0.14);
+      --text-primary: #e8f0ea; --text-secondary: rgba(255,255,255,0.45); --text-muted: rgba(255,255,255,0.25);
+      --accent: #34d399; --accent-bg: rgba(52,211,153,0.10); --accent-border: rgba(52,211,153,0.22);
+      --accent-btn-text: #000;
+      --warn: #fbbf24; --warn-bg: rgba(251,191,36,0.08); --warn-border: rgba(251,191,36,0.25);
+      --over: #f87171; --over-bg: rgba(248,113,113,0.08); --over-border: rgba(248,113,113,0.25);
+      --violet: #a78bfa; --violet-bg: rgba(167,139,250,0.10); --violet-border: rgba(167,139,250,0.22);
+      --blue: #60a5fa; --blue-bg: rgba(96,165,250,0.10); --blue-border: rgba(96,165,250,0.22);
+      --progress-bg: rgba(255,255,255,0.06); --hover-bg: rgba(255,255,255,0.04);
+      --sidebar-bg: #060c08; --sidebar-border: rgba(255,255,255,0.06);
+      --sidebar-icon: rgba(255,255,255,0.32); --sidebar-icon-hover: rgba(255,255,255,0.72);
+      --sidebar-active-bg: rgba(52,211,153,0.14); --sidebar-active: #34d399;
+      --sidebar-label: rgba(255,255,255,0.75);
+      --modal-bg: #0d1a10;
+      --ok-bg: rgba(52,211,153,0.08); --ok-border: rgba(52,211,153,0.22);
+    }
+    [data-theme="light"] {
+      --bg: #f0e9da; --bg-card: rgba(255,252,244,0.78); --bg-card-solid: #faf7f0;
+      --border: rgba(120,90,50,0.13); --border-top: rgba(255,255,255,0.88);
+      --text-primary: #271a08; --text-secondary: rgba(39,26,8,0.52); --text-muted: rgba(39,26,8,0.32);
+      --accent: #8c6d1f; --accent-bg: rgba(140,109,31,0.09); --accent-border: rgba(140,109,31,0.22);
+      --accent-btn-text: #fff;
+      --warn: #b45309; --warn-bg: rgba(180,83,9,0.07); --warn-border: rgba(180,83,9,0.25);
+      --over: #b91c1c; --over-bg: rgba(185,28,28,0.07); --over-border: rgba(185,28,28,0.25);
+      --violet: #5b3fa6; --violet-bg: rgba(91,63,166,0.08); --violet-border: rgba(91,63,166,0.2);
+      --blue: #1d4ed8; --blue-bg: rgba(29,78,216,0.08); --blue-border: rgba(29,78,216,0.2);
+      --progress-bg: rgba(120,90,50,0.10); --hover-bg: rgba(120,90,50,0.06);
+      --sidebar-bg: #1a2235; --sidebar-border: rgba(255,255,255,0.07);
+      --sidebar-icon: rgba(200,190,170,0.45); --sidebar-icon-hover: rgba(220,210,190,0.85);
+      --sidebar-active-bg: rgba(200,168,90,0.18); --sidebar-active: #c8a85a;
+      --sidebar-label: rgba(220,210,190,0.85);
+      --modal-bg: #faf7f0;
+      --ok-bg: rgba(22,101,52,0.07); --ok-border: rgba(22,101,52,0.22);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-primary); height: 100vh; overflow: hidden; transition: background 0.35s, color 0.35s; }
+
+    .bg-blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+    :root .blob1, [data-theme="dark"] .blob1 { background: rgba(6,78,59,0.35); }
+    :root .blob2, [data-theme="dark"] .blob2 { background: rgba(6,78,59,0.18); }
+    :root .blob3, [data-theme="dark"] .blob3 { background: rgba(76,29,149,0.18); }
+    [data-theme="light"] .blob1 { background: rgba(180,148,80,0.18) !important; }
+    [data-theme="light"] .blob2 { background: rgba(160,120,60,0.12) !important; }
+    [data-theme="light"] .blob3 { background: rgba(26,34,53,0.06) !important; }
+
+    .glass { background: var(--bg-card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--border); border-top-color: var(--border-top); transition: background 0.35s, border-color 0.35s; }
+    [data-theme="light"] .glass { box-shadow: 0 2px 24px rgba(120,90,50,0.08), inset 0 1px 0 rgba(255,255,255,0.75); }
+
+    #sidebar { width: 64px; flex-shrink: 0; height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); display: flex; flex-direction: column; align-items: stretch; padding: 16px 0; gap: 4px; overflow: hidden; transition: width 0.25s cubic-bezier(0.4,0,0.2,1), background 0.35s; }
+    #sidebar:hover { width: 204px; }
+    .nav-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 16px; overflow: hidden; }
+    .nav-logo-icon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--sidebar-active-bg); border: 1px solid var(--sidebar-border); }
+    .nav-logo-text { font-size: 16px; font-weight: 600; color: var(--sidebar-active); white-space: nowrap; opacity: 0; transition: opacity 0.15s 0.08s; }
+    #sidebar:hover .nav-logo-text { opacity: 1; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 44px; border-radius: 12px; margin: 0 8px; cursor: pointer; overflow: hidden; color: var(--sidebar-icon); transition: background 0.18s, color 0.18s; }
+    .nav-item:hover { background: var(--hover-bg); color: var(--sidebar-icon-hover); }
+    .nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active); }
+    .nav-icon { flex-shrink: 0; width: 20px; display: flex; justify-content: center; }
+    .nav-label { font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--sidebar-label); opacity: 0; transition: opacity 0.15s 0.08s; }
+    .nav-item.active .nav-label { color: var(--sidebar-active); }
+    #sidebar:hover .nav-label { opacity: 1; }
+    .nav-spacer { flex: 1; }
+
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .page-title { font-family: 'Inter', sans-serif; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+
+    .year-nav-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .year-nav-btn:hover:not(:disabled) { background: var(--hover-bg); color: var(--text-primary); }
+    .year-nav-btn:disabled { opacity: 0.25; cursor: default; }
+    .year-label-btn { background: none; border: none; cursor: default; padding: 2px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+
+    /* paycheck decoder */
+    .pc-section { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 12px 0 4px; }
+    .pc-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+    .pc-row:last-of-type { border-bottom: none; }
+    .pc-label { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+    .pc-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--progress-bg); color: var(--text-muted); }
+    .pc-val { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .pc-val.minus { color: var(--over); }
+    .pc-sub { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 0; margin: 4px 0; display: flex; justify-content: space-between; }
+    .pc-sub span:first-child { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .pc-sub span:last-child { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+
+    /* bracket viz */
+    .br-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .br-rate { font-size: 11px; font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
+    .br-wrap { flex: 1; height: 7px; background: var(--progress-bg); border-radius: 4px; overflow: visible; position: relative; }
+    .br-fill { height: 100%; border-radius: 4px; }
+    .br-marker { position: absolute; top: -4px; width: 2px; height: 15px; background: rgba(255,255,255,0.8); border-radius: 1px; }
+    .br-range { font-size: 10px; color: var(--text-muted); width: 116px; flex-shrink: 0; }
+    .br-amt { font-size: 11px; font-weight: 600; width: 52px; text-align: right; flex-shrink: 0; }
+
+    /* ytd */
+    .ytd-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .ytd-row:last-child { border-bottom: none; }
+    .ytd-label { font-size: 13px; color: var(--text-secondary); }
+    .ytd-sub { font-size: 11px; color: var(--text-muted); }
+    .ytd-val { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+    /* calculator inputs */
+    .ci-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+    .ci { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13.5px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+    .ci:focus { border-color: var(--accent-border); }
+    .ci option { background: var(--modal-bg); }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    .freq-toggle { display: flex; gap: 3px; background: var(--progress-bg); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+    .freq-btn { flex: 1; padding: 4px 0; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-muted); font-family: 'Inter', sans-serif; transition: all 0.15s; }
+    .freq-btn.active { background: var(--accent); color: var(--accent-btn-text); }
+
+    .sw-wrap { display: flex; align-items: center; justify-content: space-between; padding: 10px 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; user-select: none; transition: border-color 0.15s, background 0.15s; }
+    .sw-wrap.on { border-color: var(--accent-border); background: var(--accent-bg); }
+    .sw-track { width: 34px; height: 19px; border-radius: 10px; background: var(--progress-bg); position: relative; transition: background 0.2s; flex-shrink: 0; }
+    .sw-wrap.on .sw-track { background: var(--accent); }
+    .sw-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s; }
+    .sw-wrap.on .sw-thumb { left: 18px; }
+
+    .calc-btn { width: 100%; padding: 11px; border-radius: 12px; background: var(--accent); color: var(--accent-btn-text); font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; border: none; cursor: pointer; transition: opacity 0.15s; }
+    .calc-btn:hover { opacity: 0.88; }
+
+    .cr-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .cr-row:last-child { border-bottom: none; }
+    .cr-label { color: var(--text-secondary); }
+    .cr-val { font-weight: 600; color: var(--text-primary); }
+    .cr-val.minus { color: var(--over); }
+    .cr-val.net { color: var(--accent); font-weight: 700; font-size: 16px; }
+    #calcResults { display: none; }
+    #calcResults.show { display: block; }
+
+    .sample-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+    .prompt-chip { padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .prompt-chip:hover { border-color: var(--violet-border); color: var(--violet); background: var(--violet-bg); }
+    @keyframes typing { 0%,60%,100% { opacity: 0.2; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+    .ai-prompt-chip { padding:5px 11px;border-radius:99px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;text-align:left; }
+    .ai-prompt-chip:hover { border-color:var(--violet-border);color:var(--violet);background:var(--violet-bg); }
+    .refund-pill { padding: 4px 11px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+    .refund-pill.good { background: var(--ok-bg); color: var(--accent); border: 1px solid var(--ok-border); }
+    .refund-pill.owed { background: var(--over-bg); color: var(--over); border: 1px solid var(--over-border); }
+  </style>
+</head>
+<body>
+
+<div class="bg-blob blob1 w-[500px] h-[500px]" style="top:-100px;left:80px;"></div>
+<div class="bg-blob blob2 w-[350px] h-[350px]" style="bottom:-60px;right:200px;"></div>
+<div class="bg-blob blob3 w-[280px] h-[280px]" style="top:35%;right:80px;"></div>
+
+<div class="relative z-10 flex h-screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="var(--sidebar-active)"/></svg>
+      </div>
+      <span class="nav-logo-text">Birr'e</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+      <span class="nav-label">Dashboard</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></div>
+      <span class="nav-label">Transactions</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></div>
+      <span class="nav-label">Review</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg></div>
+      <span class="nav-label">Plans</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-1h14v1zm0-3H6V4h13v12zm-3-6H8v-2h8v2zm0 4H8v-2h8v2z"/></svg></div>
+      <span class="nav-label">Tax</span>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item" onclick="toggleTheme()" style="margin-bottom:4px;">
+      <div class="nav-icon"><span id="toggle-icon" style="font-size:14px;">🌙</span></div>
+      <span class="nav-label" id="toggle-label">Dark Mode</span>
+    </div>
+    <div class="nav-item" style="margin-bottom:4px;">
+      <div class="nav-icon"><div id="ghostAvatar" class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--sidebar-active-bg);color:var(--sidebar-active);transition:background 0.25s,color 0.25s;">L</div></div>
+      <span class="nav-label" style="font-size:12px;flex:1;">Leul</span>
+      <button id="ghostBtn" onclick="event.stopPropagation();toggleGhost()" class="nav-label" title="Privacy mode" style="width:22px;height:22px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;transition:color 0.15s;"></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <div class="flex-shrink-0 px-6 pt-6 pb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <button class="year-nav-btn" id="yearBack">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <span class="year-label-btn" id="yearLabel">Tax Year 2025</span>
+            <button class="year-nav-btn" id="yearFwd" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </button>
+            <span id="yearTag" style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:0.05em;"></span>
+          </div>
+          <h1 class="text-2xl font-bold page-title">Tax</h1>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="flex-1 overflow-y-auto px-6 pb-6">
+      <div style="display:grid;grid-template-columns:1fr 356px;gap:16px;align-items:start;">
+
+        <!-- LEFT -->
+        <div class="space-y-4">
+
+          <!-- PAYCHECK DECODER -->
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <p class="section-label">Paycheck Decoder</p>
+              <span style="font-size:10px;padding:2px 9px;border-radius:99px;background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--accent);font-weight:700;letter-spacing:0.04em;">May 2026 · Verified</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+              <div>
+                <p style="font-size:15px;font-weight:700;">Home Depot Management Company, LLC</p>
+                <p style="font-size:12px;color:var(--text-muted);">Period: May 11–24, 2026 &nbsp;·&nbsp; Pay Date: May 29, 2026 &nbsp;·&nbsp; 2 weekly checks (TX→ATL transition)</p>
+              </div>
+              <div style="text-align:right;">
+                <p style="font-size:11px;color:var(--text-muted);">Filing Status</p>
+                <p style="font-size:13px;font-weight:600;">Single · W-4 2020+</p>
+              </div>
+            </div>
+
+            <div class="pc-section">Earnings</div>
+            <div class="pc-row">
+              <span class="pc-label">Regular Pay <span class="pc-badge">80 hrs</span></span>
+              <span class="pc-val gn">$3,360.78</span>
+            </div>
+
+            <div class="pc-section">Pre-Tax Deductions</div>
+            <div class="pc-row">
+              <span class="pc-label">Medical Insurance</span>
+              <span class="pc-val minus">−$47.00</span>
+            </div>
+            <div class="pc-row">
+              <span class="pc-label">Dental Insurance</span>
+              <span class="pc-val minus">−$17.28</span>
+            </div>
+            <div class="pc-row">
+              <span class="pc-label">HSA Contribution</span>
+              <span class="pc-val minus">−$20.80</span>
+            </div>
+
+            <div class="pc-sub" style="margin-top:10px;">
+              <span>Taxable Wages</span>
+              <span>$3,275.70</span>
+            </div>
+
+            <div class="pc-section">Taxes Withheld</div>
+            <div class="pc-row">
+              <span class="pc-label">Federal Income Tax <span class="pc-badge">22% bracket</span></span>
+              <span class="pc-val minus gn">−$374.01</span>
+            </div>
+            <div class="pc-row">
+              <span class="pc-label">GA State Income Tax <span class="pc-badge">5.49% flat</span></span>
+              <span class="pc-val minus gn">−$122.10</span>
+            </div>
+            <div class="pc-row">
+              <span class="pc-label">Social Security</span>
+              <span class="pc-val" style="color:var(--text-muted);font-size:12px;">Exempt (visa status)</span>
+            </div>
+            <div class="pc-row">
+              <span class="pc-label">Medicare</span>
+              <span class="pc-val" style="color:var(--text-muted);font-size:12px;">Exempt (visa status)</span>
+            </div>
+
+            <div class="pc-section">After-Tax Deductions</div>
+            <div class="pc-row">
+              <span class="pc-label">Roth 401(k) <span class="pc-badge">4% · after-tax</span></span>
+              <span class="pc-val minus gn">−$134.44</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 4px;border-top:2px solid var(--border);margin-top:10px;">
+              <span style="font-size:14px;font-weight:700;">Net Pay (Take-Home)</span>
+              <span style="font-size:22px;font-weight:800;color:var(--accent);" class="gn">$2,645.15</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;padding:14px;border-radius:14px;background:var(--accent-bg);border:1px solid var(--accent-border);">
+              <div>
+                <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Annual Gross</p>
+                <p style="font-size:14px;font-weight:700;" class="gn">$87,380</p>
+              </div>
+              <div>
+                <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Hourly Rate</p>
+                <p style="font-size:14px;font-weight:700;" class="gn">$42.01/hr</p>
+              </div>
+              <div>
+                <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Monthly Net</p>
+                <p style="font-size:14px;font-weight:700;color:var(--accent);" class="gn">~$5,731</p>
+              </div>
+              <div>
+                <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Annual Net</p>
+                <p style="font-size:14px;font-weight:700;color:var(--accent);" class="gn">~$68,774</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- FEDERAL BRACKET VISUALIZER -->
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-1">
+              <div>
+                <p class="section-label">Federal Tax Brackets</p>
+                <p id="bracketSubtitle" style="font-size:12px;color:var(--text-muted);margin-top:3px;">2025 · Single Filer · Taxable income $60,400 (gross − std. deduction)</p>
+              </div>
+              <div style="padding:7px 14px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);text-align:center;">
+                <p style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);">Effective Rate</p>
+                <p id="bracketEffRate" style="font-size:18px;font-weight:800;color:var(--violet);">13.6%</p>
+              </div>
+            </div>
+
+            <div style="margin:16px 0;" id="bracketViz"></div>
+
+            <div style="padding:12px 14px;border-radius:12px;background:var(--violet-bg);border:1px solid var(--violet-border);">
+              <p id="bracketInsight" style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">
+                💡 You're in the <strong style="color:var(--violet);">22% marginal bracket</strong> — but only $11,925 of your $60,400 taxable income hits that rate.
+                The rest falls in lower brackets. Total federal tax owed: <strong style="color:var(--violet);">$8,202</strong> on $60,400 taxable income = <strong style="color:var(--violet);">13.6% effective</strong>.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT -->
+        <div class="space-y-4">
+
+          <!-- YTD SNAPSHOT -->
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-1">
+              <p class="section-label">Year-to-Date Summary</p>
+              <span style="font-size:10px;padding:2px 9px;border-radius:99px;background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--accent);font-weight:700;letter-spacing:0.04em;">2026 · Verified</span>
+            </div>
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">10 of 26 pay periods · Through May 24, 2026</p>
+
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label">Gross Earnings</p>
+                <p class="ytd-sub">Incl. Success Sharing bonus $1,164.51</p>
+              </div>
+              <span class="ytd-val gn">$37,309.22</span>
+            </div>
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label">Pre-Tax Deductions</p>
+                <p class="ytd-sub">Medical · Dental · HSA · LTD</p>
+              </div>
+              <span class="ytd-val gn" style="color:var(--accent);">−$940.23</span>
+            </div>
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label">Roth 401(k)</p>
+                <p class="ytd-sub">After-tax · does not reduce taxable income</p>
+              </div>
+              <span class="ytd-val gn" style="color:var(--text-secondary);">−$1,492.40</span>
+            </div>
+            <div class="ytd-row">
+              <span class="ytd-label">Federal Tax Withheld</span>
+              <span class="ytd-val gn" style="color:var(--over);">−$5,626.21</span>
+            </div>
+            <div class="ytd-row">
+              <span class="ytd-label">GA State Tax Withheld</span>
+              <span class="ytd-val" style="color:var(--over);">−$122.10</span>
+            </div>
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label">Social Security / Medicare</p>
+              </div>
+              <span class="ytd-val" style="color:var(--text-muted);font-size:12px;">Exempt</span>
+            </div>
+
+            <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
+
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label" style="font-weight:600;">Est. Annual Federal Liability</p>
+                <p class="ytd-sub">2025 brackets · taxable income $70,568</p>
+              </div>
+              <span class="ytd-val gn">$10,439</span>
+            </div>
+            <div class="ytd-row">
+              <div>
+                <p class="ytd-label" style="font-weight:600;">Projected Withholding</p>
+                <p class="ytd-sub">At current rate × 26 periods</p>
+              </div>
+              <span class="ytd-val gn">$14,628</span>
+            </div>
+            <div class="ytd-row" style="border-bottom:none;">
+              <div>
+                <p class="ytd-label" style="font-weight:600;">Est. Balance at Filing</p>
+                <p class="ytd-sub">Liability minus projected withholding</p>
+              </div>
+              <span class="refund-pill good gn">~$4,189 refund</span>
+            </div>
+
+            <div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--ok-bg);border:1px solid var(--ok-border);">
+              <p style="font-size:12px;color:var(--accent);">Over-withholding by ~$4,189. You're giving the IRS an interest-free loan each paycheck. Use the AI assistant to get a W-4 adjustment walkthrough.</p>
+            </div>
+          </div>
+
+          <!-- TAKE-HOME CALCULATOR -->
+          <div class="glass rounded-2xl p-5">
+            <p class="section-label">Take-Home Calculator</p>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:3px;margin-bottom:18px;">What-if: raise, new job, or moving states — real 2025 federal brackets</p>
+
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <p class="ci-label" style="margin-bottom:0;">Gross Salary</p>
+                <div class="freq-toggle">
+                  <button class="freq-btn active" id="freqYear" onclick="setFreq('year')">Per Year</button>
+                  <button class="freq-btn" id="freqCheck" onclick="setFreq('paycheck')">Per Paycheck</button>
+                </div>
+              </div>
+              <input class="ci" id="calcSalary" type="number" placeholder="87380" value="87380" />
+              <p id="salaryHint" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></p>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <p class="ci-label">Filing Status</p>
+              <select class="ci" id="calcFiling">
+                <option value="single">Single</option>
+                <option value="mfj">Married Filing Jointly</option>
+                <option value="hoh">Head of Household</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <p class="ci-label">State <span style="text-transform:none;font-weight:400;color:var(--text-muted);letter-spacing:0;font-size:10px;"> — simplified/estimated</span></p>
+              <select class="ci" id="calcState"></select>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+              <div>
+                <p class="ci-label">401(k)</p>
+                <div style="position:relative;">
+                  <input class="ci" id="calc401k" type="number" placeholder="0" value="0" oninput="update401Hint()" style="padding-right:68px;" />
+                  <div style="position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;gap:2px;background:var(--progress-bg);border:1px solid var(--border);border-radius:6px;padding:2px;">
+                    <button id="k401Pct" onclick="set401Mode('pct')" style="padding:3px 7px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;background:var(--accent);color:var(--accent-btn-text);transition:all 0.15s;">%</button>
+                    <button id="k401Dollar" onclick="set401Mode('dollar')" style="padding:3px 7px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;background:transparent;color:var(--text-muted);transition:all 0.15s;">$</button>
+                  </div>
+                </div>
+                <p id="k401Hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;"></p>
+              </div>
+              <div>
+                <p class="ci-label" id="healthLabel">Health Ins. / Year</p>
+                <input class="ci" id="calcHealth" type="number" placeholder="2212" value="2212" />
+              </div>
+            </div>
+
+            <div class="sw-wrap" id="ficaToggle" onclick="toggleFica()" style="margin-bottom:16px;">
+              <div>
+                <p style="font-size:13px;font-weight:600;">FICA Exempt</p>
+                <p style="font-size:11px;color:var(--text-muted);margin-top:1px;">Exclude Social Security &amp; Medicare (F-1, J-1, certain visa holders)</p>
+              </div>
+              <div class="sw-track"><div class="sw-thumb"></div></div>
+            </div>
+
+            <button class="calc-btn" onclick="calculateTakeHome()">Calculate Take-Home →</button>
+
+            <div id="calcResults" style="margin-top:20px;">
+              <div style="border-top:1px solid var(--border);padding-top:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                  <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Annual Breakdown</p>
+                  <p style="font-size:11px;color:var(--text-muted);" id="stateNote"></p>
+                </div>
+                <div class="cr-row"><span class="cr-label">Gross Salary</span><span class="cr-val gn" id="r-gross"></span></div>
+                <div class="cr-row"><span class="cr-label">401(k) Pre-Tax</span><span class="cr-val minus gn" id="r-401k"></span></div>
+                <div class="cr-row"><span class="cr-label">Health Insurance</span><span class="cr-val minus gn" id="r-health"></span></div>
+                <div class="cr-row"><span class="cr-label">Federal Income Tax</span><span class="cr-val minus gn" id="r-federal"></span></div>
+                <div class="cr-row"><span class="cr-label">State Tax</span><span class="cr-val minus gn" id="r-state"></span></div>
+                <div class="cr-row"><span class="cr-label">Social Security (6.2%)</span><span class="cr-val minus gn" id="r-ss"></span></div>
+                <div class="cr-row"><span class="cr-label">Medicare (1.45%)</span><span class="cr-val minus gn" id="r-medicare"></span></div>
+                <div style="border-top:2px solid var(--border);margin:8px 0;"></div>
+                <div class="cr-row"><span style="font-size:13px;font-weight:700;">Annual Take-Home</span><span class="cr-val net gn" id="r-annual"></span></div>
+                <div class="cr-row"><span class="cr-label">Per Paycheck (bi-weekly)</span><span class="cr-val gn" style="color:var(--accent);" id="r-paycheck"></span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+                  <div style="padding:9px 12px;border-radius:10px;background:var(--over-bg);border:1px solid var(--over-border);text-align:center;">
+                    <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:2px;">Marginal Rate</p>
+                    <p style="font-size:18px;font-weight:800;color:var(--over);" id="r-marginal"></p>
+                  </div>
+                  <div style="padding:9px 12px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);text-align:center;">
+                    <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:2px;">Effective Rate</p>
+                    <p style="font-size:18px;font-weight:800;color:var(--violet);" id="r-effective"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+<script>
+// THEME
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-icon').textContent  = isDark ? '🌙' : '☀️';
+  document.getElementById('toggle-label').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+}
+
+// YEAR NAV
+let currentYear = 2026;
+const MAX_YEAR = 2026;
+const MIN_YEAR = 2022;
+const yearLabelEl = document.getElementById('yearLabel');
+const yearTag = document.getElementById('yearTag');
+const yearFwd = document.getElementById('yearFwd');
+const yearBack = document.getElementById('yearBack');
+
+function updateYearNav() {
+  yearLabelEl.textContent = `Tax Year ${currentYear}`;
+  yearBack.disabled = currentYear <= MIN_YEAR;
+  yearFwd.disabled = currentYear >= MAX_YEAR;
+  yearTag.textContent = currentYear === 2026 ? 'In Progress' : currentYear === 2025 ? 'Most Recent' : '';
+  yearTag.style.background = currentYear === 2026 ? 'var(--warn-bg)' : 'var(--accent-bg)';
+  yearTag.style.color = currentYear === 2026 ? 'var(--warn)' : 'var(--accent)';
+  yearTag.style.border = currentYear === 2026 ? '1px solid var(--warn-border)' : '1px solid var(--accent-border)';
+}
+yearBack.addEventListener('click', () => { currentYear--; updateYearNav(); });
+yearFwd.addEventListener('click', () => { currentYear++; updateYearNav(); });
+updateYearNav();
+
+// SALARY FREQUENCY TOGGLE
+let salaryFreq = 'year';
+const PAY_PERIODS = 26;
+
+function setFreq(mode) {
+  const input = document.getElementById('calcSalary');
+  const val = parseFloat(input.value) || 0;
+  if (mode === salaryFreq) return;
+  const toPaycheck = mode === 'paycheck';
+  input.value = val > 0 ? (toPaycheck ? (val / PAY_PERIODS).toFixed(2) : Math.round(val * PAY_PERIODS)) : '';
+  input.placeholder = toPaycheck ? '2884.62' : '75000';
+  const hInput = document.getElementById('calcHealth');
+  const hVal = parseFloat(hInput.value) || 0;
+  if (hVal > 0) hInput.value = toPaycheck ? (hVal / PAY_PERIODS).toFixed(2) : Math.round(hVal * PAY_PERIODS);
+  document.getElementById('healthLabel').textContent = toPaycheck ? 'Health Ins. / Paycheck' : 'Health Ins. / Year';
+  if (k401Mode === 'dollar') {
+    const kInput = document.getElementById('calc401k');
+    const kVal = parseFloat(kInput.value) || 0;
+    if (kVal > 0) kInput.value = toPaycheck ? (kVal / PAY_PERIODS).toFixed(2) : Math.round(kVal * PAY_PERIODS);
+  }
+  salaryFreq = mode;
+  document.getElementById('freqYear').classList.toggle('active', mode === 'year');
+  document.getElementById('freqCheck').classList.toggle('active', mode === 'paycheck');
+  updateSalaryHint(parseFloat(input.value) || 0);
+  update401Hint();
+}
+
+function updateSalaryHint(val) {
+  const hint = document.getElementById('salaryHint');
+  if (!val) { hint.textContent = ''; return; }
+  hint.textContent = salaryFreq === 'paycheck'
+    ? `≈ ${fmt(val * PAY_PERIODS)} / year  (${PAY_PERIODS} pay periods)`
+    : `≈ ${fmt(val / PAY_PERIODS)} / paycheck  (bi-weekly)`;
+}
+document.getElementById('calcSalary').addEventListener('input', e => updateSalaryHint(parseFloat(e.target.value) || 0));
+
+// 401K MODE
+let k401Mode = 'pct';
+function set401Mode(mode) {
+  if (mode === k401Mode) return;
+  const input = document.getElementById('calc401k');
+  const val = parseFloat(input.value) || 0;
+  if (mode === 'dollar') {
+    const rawSal = parseFloat(document.getElementById('calcSalary').value) || 0;
+    const annualGross = salaryFreq === 'paycheck' ? rawSal * PAY_PERIODS : rawSal;
+    const annual401k = annualGross * (val / 100);
+    input.value = val > 0 ? (salaryFreq === 'paycheck' ? (annual401k / PAY_PERIODS).toFixed(2) : Math.round(annual401k)) : '';
+    input.placeholder = salaryFreq === 'paycheck' ? '173.08' : '4500';
+  } else {
+    const rawSal = parseFloat(document.getElementById('calcSalary').value) || 0;
+    const annualGross = salaryFreq === 'paycheck' ? rawSal * PAY_PERIODS : rawSal;
+    const annual401k = salaryFreq === 'paycheck' ? val * PAY_PERIODS : val;
+    input.value = (annualGross > 0 && val > 0) ? ((annual401k / annualGross) * 100).toFixed(1) : '';
+    input.placeholder = '6';
+  }
+  k401Mode = mode;
+  const pctBtn = document.getElementById('k401Pct');
+  const dolBtn = document.getElementById('k401Dollar');
+  pctBtn.style.background = mode === 'pct' ? 'var(--accent)' : 'transparent';
+  pctBtn.style.color = mode === 'pct' ? 'var(--accent-btn-text)' : 'var(--text-muted)';
+  dolBtn.style.background = mode === 'dollar' ? 'var(--accent)' : 'transparent';
+  dolBtn.style.color = mode === 'dollar' ? 'var(--accent-btn-text)' : 'var(--text-muted)';
+  update401Hint();
+}
+
+function update401Hint() {
+  const hint = document.getElementById('k401Hint');
+  const val = parseFloat(document.getElementById('calc401k').value) || 0;
+  if (!val) { hint.textContent = ''; return; }
+  if (k401Mode === 'pct') {
+    const rawSal = parseFloat(document.getElementById('calcSalary').value) || 0;
+    const annualGross = salaryFreq === 'paycheck' ? rawSal * PAY_PERIODS : rawSal;
+    if (annualGross > 0) {
+      const annual = annualGross * (val / 100);
+      hint.textContent = `≈ ${fmt(annual / PAY_PERIODS)} / paycheck  (${fmt(annual)} / yr)`;
+    }
+  } else {
+    hint.textContent = salaryFreq === 'paycheck' ? `≈ ${fmt(val * PAY_PERIODS)} / year` : `≈ ${fmt(val / PAY_PERIODS)} / paycheck`;
+  }
+}
+
+// FICA EXEMPT
+let ficaExempt = true;
+function toggleFica() {
+  ficaExempt = !ficaExempt;
+  document.getElementById('ficaToggle').classList.toggle('on', ficaExempt);
+}
+
+// 2025 FEDERAL TAX BRACKETS (IRS official)
+const BRACKETS = {
+  single: [
+    { rate: 0.10, min: 0,      max: 11925 },
+    { rate: 0.12, min: 11925,  max: 48475 },
+    { rate: 0.22, min: 48475,  max: 103350 },
+    { rate: 0.24, min: 103350, max: 197300 },
+    { rate: 0.32, min: 197300, max: 250525 },
+    { rate: 0.35, min: 250525, max: 626350 },
+    { rate: 0.37, min: 626350, max: Infinity }
+  ],
+  mfj: [
+    { rate: 0.10, min: 0,      max: 23850 },
+    { rate: 0.12, min: 23850,  max: 96950 },
+    { rate: 0.22, min: 96950,  max: 206700 },
+    { rate: 0.24, min: 206700, max: 394600 },
+    { rate: 0.32, min: 394600, max: 501050 },
+    { rate: 0.35, min: 501050, max: 751600 },
+    { rate: 0.37, min: 751600, max: Infinity }
+  ],
+  hoh: [
+    { rate: 0.10, min: 0,      max: 17000 },
+    { rate: 0.12, min: 17000,  max: 64850 },
+    { rate: 0.22, min: 64850,  max: 103350 },
+    { rate: 0.24, min: 103350, max: 197300 },
+    { rate: 0.32, min: 197300, max: 250500 },
+    { rate: 0.35, min: 250500, max: 626350 },
+    { rate: 0.37, min: 626350, max: Infinity }
+  ]
+};
+const STD_DEDUCTION = { single: 14600, mfj: 29200, hoh: 21900 };
+const SS_WAGE_BASE_2025 = 176100;
+
+// State taxes — simplified/approximate 2025 rates
+const STATES = [
+  { code:'AL', name:'Alabama',          rate:0.0500, note:'up to 5.0%' },
+  { code:'AK', name:'Alaska',           rate:0,      note:'No state income tax' },
+  { code:'AZ', name:'Arizona',          rate:0.0250, note:'2.5% flat' },
+  { code:'AR', name:'Arkansas',         rate:0.0440, note:'up to 4.4%' },
+  { code:'CA', name:'California',       rate:0.0930, note:'up to 9.3%' },
+  { code:'CO', name:'Colorado',         rate:0.0440, note:'4.4% flat' },
+  { code:'CT', name:'Connecticut',      rate:0.0650, note:'up to 6.5%' },
+  { code:'DE', name:'Delaware',         rate:0.0660, note:'up to 6.6%' },
+  { code:'DC', name:'Washington D.C.',  rate:0.0895, note:'up to 8.95%' },
+  { code:'FL', name:'Florida',          rate:0,      note:'No state income tax' },
+  { code:'GA', name:'Georgia',          rate:0.0549, note:'5.49% flat' },
+  { code:'HI', name:'Hawaii',           rate:0.1100, note:'up to 11%' },
+  { code:'ID', name:'Idaho',            rate:0.0580, note:'5.8% flat' },
+  { code:'IL', name:'Illinois',         rate:0.0495, note:'4.95% flat' },
+  { code:'IN', name:'Indiana',          rate:0.0305, note:'3.05% flat' },
+  { code:'IA', name:'Iowa',             rate:0.0380, note:'up to 3.8%' },
+  { code:'KS', name:'Kansas',           rate:0.0570, note:'up to 5.7%' },
+  { code:'KY', name:'Kentucky',         rate:0.0400, note:'4.0% flat' },
+  { code:'LA', name:'Louisiana',        rate:0.0300, note:'up to 3.0%' },
+  { code:'ME', name:'Maine',            rate:0.0750, note:'up to 7.5%' },
+  { code:'MD', name:'Maryland',         rate:0.0575, note:'up to 5.75%' },
+  { code:'MA', name:'Massachusetts',    rate:0.0500, note:'5.0% flat' },
+  { code:'MI', name:'Michigan',         rate:0.0405, note:'4.05% flat' },
+  { code:'MN', name:'Minnesota',        rate:0.0985, note:'up to 9.85%' },
+  { code:'MS', name:'Mississippi',      rate:0.0470, note:'up to 4.7%' },
+  { code:'MO', name:'Missouri',         rate:0.0480, note:'up to 4.8%' },
+  { code:'MT', name:'Montana',          rate:0.0590, note:'up to 5.9%' },
+  { code:'NE', name:'Nebraska',         rate:0.0664, note:'up to 6.64%' },
+  { code:'NV', name:'Nevada',           rate:0,      note:'No state income tax' },
+  { code:'NH', name:'New Hampshire',    rate:0,      note:'No tax on wages' },
+  { code:'NJ', name:'New Jersey',       rate:0.0897, note:'up to 8.97%' },
+  { code:'NM', name:'New Mexico',       rate:0.0590, note:'up to 5.9%' },
+  { code:'NY', name:'New York',         rate:0.0685, note:'up to 6.85%' },
+  { code:'NC', name:'North Carolina',   rate:0.0450, note:'4.5% flat' },
+  { code:'ND', name:'North Dakota',     rate:0.0250, note:'up to 2.5%' },
+  { code:'OH', name:'Ohio',             rate:0.0399, note:'up to 3.99%' },
+  { code:'OK', name:'Oklahoma',         rate:0.0475, note:'up to 4.75%' },
+  { code:'OR', name:'Oregon',           rate:0.0990, note:'up to 9.9%' },
+  { code:'PA', name:'Pennsylvania',     rate:0.0307, note:'3.07% flat' },
+  { code:'RI', name:'Rhode Island',     rate:0.0599, note:'up to 5.99%' },
+  { code:'SC', name:'South Carolina',   rate:0.0640, note:'up to 6.4%' },
+  { code:'SD', name:'South Dakota',     rate:0,      note:'No state income tax' },
+  { code:'TN', name:'Tennessee',        rate:0,      note:'No tax on wages' },
+  { code:'TX', name:'Texas',            rate:0,      note:'No state income tax' },
+  { code:'UT', name:'Utah',             rate:0.0455, note:'4.55% flat' },
+  { code:'VT', name:'Vermont',          rate:0.0875, note:'up to 8.75%' },
+  { code:'VA', name:'Virginia',         rate:0.0575, note:'up to 5.75%' },
+  { code:'WA', name:'Washington',       rate:0,      note:'No state income tax' },
+  { code:'WV', name:'West Virginia',    rate:0.0650, note:'up to 6.5%' },
+  { code:'WI', name:'Wisconsin',        rate:0.0765, note:'up to 7.65%' },
+  { code:'WY', name:'Wyoming',          rate:0,      note:'No state income tax' },
+].sort((a,b) => a.name.localeCompare(b.name));
+
+const stateSelect = document.getElementById('calcState');
+STATES.forEach(s => {
+  const o = document.createElement('option');
+  o.value = s.code;
+  o.textContent = `${s.name}  (${s.note})`;
+  if (s.code === 'GA') o.selected = true;
+  stateSelect.appendChild(o);
+});
+
+function calcFederalTax(taxableIncome, filing) {
+  const brackets = BRACKETS[filing] || BRACKETS.single;
+  let tax = 0, marginalRate = 0.10;
+  for (const b of brackets) {
+    if (taxableIncome <= b.min) break;
+    tax += (Math.min(taxableIncome, b.max === Infinity ? taxableIncome : b.max) - b.min) * b.rate;
+    if (taxableIncome > b.min) marginalRate = b.rate;
+  }
+  return { tax: Math.max(0, tax), marginalRate };
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
+
+function calculateTakeHome() {
+  const rawVal = parseFloat(document.getElementById('calcSalary').value) || 0;
+  const gross = salaryFreq === 'paycheck' ? rawVal * PAY_PERIODS : rawVal;
+  const filing = document.getElementById('calcFiling').value;
+  const stateCode = document.getElementById('calcState').value;
+  const raw401k = parseFloat(document.getElementById('calc401k').value) || 0;
+  const rawHealth = parseFloat(document.getElementById('calcHealth').value) || 0;
+  const healthAnnual = salaryFreq === 'paycheck' ? rawHealth * PAY_PERIODS : rawHealth;
+
+  const contrib401k = k401Mode === 'pct'
+    ? gross * (raw401k / 100)
+    : (salaryFreq === 'paycheck' ? raw401k * PAY_PERIODS : raw401k);
+
+  const preTax = contrib401k + healthAnnual;
+  const stdDed = STD_DEDUCTION[filing] || STD_DEDUCTION.single;
+  const federalTaxable = Math.max(0, gross - preTax - stdDed);
+
+  const { tax: federalTax, marginalRate } = calcFederalTax(federalTaxable, filing);
+  const stateInfo = STATES.find(s => s.code === stateCode);
+  const stateTax = stateInfo ? (gross - preTax) * stateInfo.rate : 0;
+  const ssTax = ficaExempt ? 0 : Math.min(gross, SS_WAGE_BASE_2025) * 0.062;
+  const medicareTax = ficaExempt ? 0 : (gross * 0.0145 + (gross > 200000 ? (gross - 200000) * 0.009 : 0));
+
+  const annualNet = gross - contrib401k - healthAnnual - federalTax - stateTax - ssTax - medicareTax;
+  const effectiveRate = gross > 0 ? federalTax / gross : 0;
+
+  document.getElementById('r-gross').textContent = fmt(gross);
+  document.getElementById('r-401k').textContent = '−' + fmt(contrib401k);
+  document.getElementById('r-health').textContent = '−' + fmt(healthAnnual);
+  document.getElementById('r-federal').textContent = '−' + fmt(federalTax);
+  document.getElementById('r-state').textContent = stateInfo && stateInfo.rate === 0 ? '$0' : '−' + fmt(stateTax);
+
+  const ssRow = document.getElementById('r-ss');
+  const medRow = document.getElementById('r-medicare');
+  if (ficaExempt) {
+    ssRow.textContent = 'Exempt'; ssRow.className = 'cr-val'; ssRow.style.color = 'var(--text-muted)';
+    medRow.textContent = 'Exempt'; medRow.className = 'cr-val'; medRow.style.color = 'var(--text-muted)';
+  } else {
+    ssRow.textContent = '−' + fmt(ssTax); ssRow.className = 'cr-val minus'; ssRow.style.color = '';
+    medRow.textContent = '−' + fmt(medicareTax); medRow.className = 'cr-val minus'; medRow.style.color = '';
+  }
+
+  document.getElementById('r-annual').textContent = fmt(annualNet);
+  document.getElementById('r-paycheck').textContent = fmt(annualNet / 26);
+  document.getElementById('r-marginal').textContent = Math.round(marginalRate * 100) + '%';
+  document.getElementById('r-effective').textContent = fmtPct(effectiveRate);
+  document.getElementById('stateNote').textContent = stateInfo ? stateInfo.note : '';
+  document.getElementById('calcResults').classList.add('show');
+  renderBracketViz(federalTaxable, filing);
+  ['r-gross','r-401k','r-health','r-federal','r-state','r-ss','r-medicare','r-annual','r-paycheck'].forEach(id=>{const el=document.getElementById(id);if(el){delete el.dataset.real;delete el.dataset.fake;}});
+  if(typeof _initGhost==='function') _initGhost();
+}
+
+// BRACKET VISUALIZER
+function renderBracketViz(taxableIncome, filing) {
+  filing = filing || 'single';
+  taxableIncome = taxableIncome !== undefined ? taxableIncome : 60400;
+  const brackets = BRACKETS[filing];
+  const COLORS = ['#34d399','#6ee7b7','#fbbf24','#fb923c','#f87171','#e879f9','#a78bfa'];
+  const scale = Math.max(taxableIncome * 2.5, 150000);
+
+  let totalFederalTax = 0, marginalRate = 0.10, topBracketMin = 0, amountInTopBracket = 0;
+  let html = '';
+
+  brackets.forEach((b, i) => {
+    const effectiveMax = b.max === Infinity ? scale : b.max;
+    const barPct = Math.min((effectiveMax / scale) * 100, 100);
+    const inBracket = taxableIncome > b.min;
+    const amountIn = inBracket ? Math.min(taxableIncome, b.max === Infinity ? taxableIncome : b.max) - b.min : 0;
+    const taxIn = amountIn * b.rate;
+    if (inBracket) { totalFederalTax += taxIn; marginalRate = b.rate; topBracketMin = b.min; amountInTopBracket = amountIn; }
+    const markerPct = (taxableIncome >= b.min && taxableIncome <= effectiveMax && b.max !== Infinity)
+      ? ((taxableIncome - b.min) / (effectiveMax - b.min)) * barPct : -1;
+    const rangeText = b.max === Infinity ? `$${b.min.toLocaleString()}+` : `$${b.min.toLocaleString()} – $${b.max.toLocaleString()}`;
+
+    html += `<div class="br-row" style="opacity:${inBracket ? 1 : 0.3}">
+      <span class="br-rate" style="color:${COLORS[i]}">${Math.round(b.rate*100)}%</span>
+      <div class="br-wrap">
+        <div class="br-fill" style="width:${barPct}%;background:${COLORS[i]};opacity:${taxableIncome >= effectiveMax ? 1 : 0.35};"></div>
+        ${markerPct >= 0 ? `<div class="br-marker" style="left:${markerPct.toFixed(1)}%;"></div>` : ''}
+      </div>
+      <span class="br-range">${rangeText}</span>
+      <span class="br-amt" style="color:${inBracket ? COLORS[i] : 'var(--text-muted)'}">
+        ${inBracket ? '−'+fmt(taxIn) : '—'}
+      </span>
+    </div>`;
+  });
+  document.getElementById('bracketViz').innerHTML = html;
+
+  const effectiveOnTaxable = taxableIncome > 0 ? totalFederalTax / taxableIncome : 0;
+  const filingLabel = { single: 'Single', mfj: 'Married Filing Jointly', hoh: 'Head of Household' }[filing];
+  document.getElementById('bracketSubtitle').textContent =
+    `2025 · ${filingLabel} · Taxable income ${fmt(taxableIncome)} (gross − pre-tax deductions − std. deduction)`;
+  document.getElementById('bracketEffRate').textContent = fmtPct(effectiveOnTaxable);
+  document.getElementById('bracketInsight').innerHTML =
+    `💡 You're in the <strong style="color:var(--violet);">${Math.round(marginalRate*100)}% marginal bracket</strong> — but only ${fmt(amountInTopBracket)} of your ${fmt(taxableIncome)} taxable income hits that rate.
+    The rest falls in lower brackets. Total federal tax owed: <strong style="color:var(--violet);">${fmt(totalFederalTax)}</strong> on ${fmt(taxableIncome)} taxable income = <strong style="color:var(--violet);">${fmtPct(effectiveOnTaxable)} effective</strong>.`;
+}
+
+
+// Init
+document.getElementById('ficaToggle').classList.add('on');
+renderBracketViz(70568, 'single');
+updateSalaryHint(87380);
+calculateTakeHome();
+const GHOST_MULT=(()=>{let m=parseFloat(sessionStorage.getItem('_gm')||'');if(!m||m<1.2||m>3){m=1.3+Math.random()*1.0;sessionStorage.setItem('_gm',m);}return m;})();
+let ghostOn=sessionStorage.getItem('_go')==='1';
+function _fakeVal(t){if(!t||t.includes('%'))return t;if(t.includes(' / '))return t.split(' / ').map(p=>_fakeVal(p.trim())).join(' / ');const ap=t.startsWith('~'),s=ap?t.slice(1):t,neg=s.startsWith('−')||s.startsWith('-'),pos=s.startsWith('+'),hr=s.endsWith('/hr'),mo=s.endsWith('/mo');const n=parseFloat(s.replace(/[^0-9.]/g,''));if(!n)return t;const f=n*GHOST_MULT,has$=s.includes('$'),hasDec=/\.\d{2}/.test(s);let fmt=has$?'$'+(hasDec?f.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','):Math.round(f).toLocaleString()):Math.round(f).toLocaleString();return(ap?'~':'')+(neg?'−':pos?'+':'')+fmt+(hr?'/hr':mo?'/mo':'');}
+function _initGhost(){document.querySelectorAll('.gn').forEach(el=>{if(!el.dataset.real){el.dataset.real=el.textContent.trim();el.dataset.fake=_fakeVal(el.dataset.real);}});_applyGhost();}
+function _applyGhost(){document.querySelectorAll('.gn').forEach(el=>{el.textContent=ghostOn?(el.dataset.fake||el.dataset.real):el.dataset.real;});const btn=document.getElementById('ghostBtn'),av=document.getElementById('ghostAvatar');if(btn){btn.innerHTML=ghostOn?'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>':'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';btn.style.color=ghostOn?'var(--violet)':'var(--sidebar-icon)';}if(av){av.style.background=ghostOn?'rgba(167,139,250,0.18)':'var(--sidebar-active-bg)';av.style.color=ghostOn?'var(--violet)':'var(--sidebar-active)';}}
+function toggleGhost(){ghostOn=!ghostOn;sessionStorage.setItem('_go',ghostOn?'1':'0');_initGhost();}
+_initGhost();
+
+// ── AI Floating Panel ─────────────────────────────────────
+let aiPanelOpen=false;
+function toggleAiPanel(){aiPanelOpen=!aiPanelOpen;document.getElementById('aiPanel').style.right=aiPanelOpen?'0':'-400px';const f=document.getElementById('aiFab');f.style.transform=aiPanelOpen?'rotate(90deg) scale(0.9)':'';f.style.boxShadow=aiPanelOpen?'0 4px 16px rgba(167,139,250,0.2)':'0 8px 32px rgba(167,139,250,0.4)';}
+function aiSelectPrompt(el){document.getElementById('aiPanelInput').value=el.textContent.trim();document.getElementById('aiPanelInput').focus();}
+const AI_RESPONSES=['Your over-withholding of ~$4,189 means you\'re on pace to send the IRS $14,628 when you only owe ~$10,439. Submit a revised W-4 to HR reducing Step 4(c) by ~$262/paycheck to break even by year end.','Your 22% marginal rate only applies to income above $48,475 (after deductions). Your effective federal rate — what you actually pay across all income — is closer to 14.8%.','Roth 401(k) contributions don\'t reduce your current taxable income. You pay tax now, then growth and withdrawals are completely tax-free in retirement.','Your HSA is triple-tax-advantaged: pre-tax contributions, tax-free growth, tax-free withdrawals for medical costs. At $540/yr you\'re well under the $4,300 annual limit — consider bumping it up.','At your current Georgia income level, you\'re subject to the flat 5.49% state income rate. No additional deductions are applied at the state level beyond federal AGI.','Good question — I\'ll work through that with your 2026 YTD numbers...'];
+let aiMockIdx=0;
+function sendAiMsg(){const input=document.getElementById('aiPanelInput'),text=input.value.trim();if(!text)return;const msgs=document.getElementById('aiMessages');const uDiv=document.createElement('div');uDiv.style.cssText='display:flex;justify-content:flex-end;';uDiv.innerHTML=`<div style="max-width:84%;padding:9px 13px;border-radius:13px 13px 3px 13px;background:var(--accent-bg);border:1px solid var(--accent-border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.5;">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p></div>`;msgs.appendChild(uDiv);input.value='';input.style.height='auto';msgs.scrollTop=msgs.scrollHeight;const tDiv=document.createElement('div');tDiv.id='aiTyping';tDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';tDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);display:flex;gap:4px;align-items:center;"><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.2s;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);animation:typing 1.2s infinite 0.4s;display:inline-block;"></span></div>`;msgs.appendChild(tDiv);msgs.scrollTop=msgs.scrollHeight;setTimeout(()=>{const t=document.getElementById('aiTyping');if(t)t.remove();const resp=AI_RESPONSES[aiMockIdx%AI_RESPONSES.length];aiMockIdx++;const aDiv=document.createElement('div');aDiv.style.cssText='display:flex;gap:8px;align-items:flex-start;';aDiv.innerHTML=`<div style="width:26px;height:26px;border-radius:8px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div><div style="max-width:88%;padding:10px 14px;border-radius:3px 13px 13px 13px;background:var(--bg-card);border:1px solid var(--border);"><p style="font-size:13px;color:var(--text-primary);line-height:1.65;">${resp}</p><p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic;">Mockup — real app calls Claude API with your live data.</p></div>`;msgs.appendChild(aDiv);msgs.scrollTop=msgs.scrollHeight;},1000);}
+</script>
+<!-- ── AI FLOATING PANEL ── -->
+<button id="aiFab" onclick="toggleAiPanel()" title="Ask Birr'e AI" style="position:fixed;bottom:24px;right:24px;z-index:300;width:52px;height:52px;border-radius:50%;border:none;background:var(--violet);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(167,139,250,0.4);transition:transform 0.25s,box-shadow 0.25s;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+<div id="aiPanel" style="position:fixed;top:0;right:-400px;width:380px;height:100vh;z-index:299;background:var(--bg-card);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:-8px 0 32px rgba(0,0,0,0.12);">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--violet-bg);border:1px solid var(--violet-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
+      <div><p style="font-size:13px;font-weight:700;color:var(--text-primary);">Birr'e AI</p><p style="font-size:11px;color:var(--text-muted);">Tax · W-4, withholding, and deductions</p></div>
+    </div>
+    <button onclick="toggleAiPanel()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='none'">✕</button>
+  </div>
+  <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">How do I adjust my W-4 to stop over-withholding?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">Explain my effective vs marginal rate</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">Should I switch to Traditional 401(k)?</button>
+    <button onclick="aiSelectPrompt(this)" class="ai-prompt-chip">What deductions might I be missing?</button>
+  </div>
+  <div id="aiMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:center;"><span style="font-size:11px;padding:4px 14px;border-radius:99px;background:var(--progress-bg);color:var(--text-muted);">2026 YTD · $37,309 gross · ~$4,189 over-withheld</span></div>
+  </div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea id="aiPanelInput" placeholder="Ask about your taxes…" rows="1" style="flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--progress-bg);color:var(--text-primary);font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color 0.15s;" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'" onfocus="this.style.borderColor='var(--violet-border)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiMsg();}"></textarea>
+      <button onclick="sendAiMsg()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--violet-border);background:var(--violet-bg);color:var(--violet);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='var(--violet)';this.querySelector('svg').setAttribute('fill','#fff')" onmouseout="this.style.background='var(--violet-bg)';this.querySelector('svg').setAttribute('fill','var(--violet)')"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--violet)"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">Mockup — real app uses Claude API with your live data.</p>
+  </div>
+</div>
+</body>
+</html>

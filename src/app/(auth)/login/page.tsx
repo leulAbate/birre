@@ -1,92 +1,105 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+      setError(error.message);
+      setLoading(false);
+      return;
     }
 
-    router.push("/dashboard")
-    router.refresh()
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white text-sm font-bold">F</span>
-          </div>
-          <span className="font-semibold text-lg">Finance</span>
+    <div className="glass rounded-3xl p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="nav-logo-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              fill="var(--sidebar-active)"
+            />
+          </svg>
         </div>
-        <CardTitle className="text-2xl">Welcome back</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-              {error}
-            </div>
-          )}
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="email">Email</label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        <span className="page-title text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+          Birr&apos;e
+        </span>
+      </div>
+
+      <h1 className="page-title text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
+        Welcome back
+      </h1>
+      <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
+        Sign in to your account
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div
+            className="text-sm px-3 py-2 rounded-lg"
+            style={{ background: "var(--over-bg)", color: "var(--over)", border: "1px solid var(--over-border)" }}
+          >
+            {error}
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="password">Password</label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary font-medium hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
+        )}
+
+        <div>
+          <label className="modal-label" htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            className="modal-input"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="modal-label" htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            className="modal-input"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        <button type="submit" className="btn-primary w-full" disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+
+        <p className="text-sm text-center" style={{ color: "var(--text-secondary)" }}>
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium hover:underline" style={{ color: "var(--accent)" }}>
+            Sign up
+          </Link>
+        </p>
       </form>
-    </Card>
-  )
+    </div>
+  );
 }
