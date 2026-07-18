@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
+import { GhostToggle } from "./ghost-toggle";
+import { SignOutButton } from "./signout-button";
 import { ProfileItem } from "./profile-item";
 
 interface Props {
@@ -72,7 +74,9 @@ export function Sidebar({ userInitial, userName }: Props) {
 
       <div className="nav-spacer" />
 
+      <GhostToggle />
       <ThemeToggle />
+      <SignOutButton />
       <ProfileItem initial={userInitial} name={userName} />
     </aside>
   );

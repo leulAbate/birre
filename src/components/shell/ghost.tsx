@@ -11,7 +11,9 @@ interface GhostCtxValue {
 const GhostCtx = createContext<GhostCtxValue>({ on: false, mult: 1.5, toggle: () => {} });
 
 export function GhostProvider({ children }: { children: React.ReactNode }) {
-  const [on, setOn] = useState(false);
+  // Default ON: privacy-first. Users who want real numbers turn it off
+  // per-session with the sidebar toggle.
+  const [on, setOn] = useState(true);
   const [mult, setMult] = useState(1.5);
 
   useEffect(() => {
@@ -21,7 +23,8 @@ export function GhostProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem("_gm", String(m));
     }
     setMult(m);
-    setOn(sessionStorage.getItem("_go") === "1");
+    const stored = sessionStorage.getItem("_go");
+    setOn(stored === "0" ? false : true);
   }, []);
 
   function toggle() {

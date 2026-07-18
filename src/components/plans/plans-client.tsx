@@ -29,7 +29,7 @@ export function PlansClient({ progress }: { progress: GoalProgress[] }) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 space-y-6">
         {progress.length === 0 ? (
           <EmptyState onAdd={() => setOpenAdd(true)} />
         ) : (

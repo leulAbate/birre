@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { Account, Goal, TxType } from "@/lib/types";
+import { useState, useTransition, useEffect } from "react";
+import type { Account, Goal, Transaction, TxType } from "@/lib/types";
 import { ALL_CATEGORIES, CATEGORIES, SAVINGS_CATEGORIES } from "@/lib/types";
 import { autoCategorize } from "@/lib/calculations/categorize";
 import {
   addTransaction,
   addTransactionsBulk,
+  deleteTransaction,
+  updateTransaction,
   type TransactionInput,
 } from "@/server/actions/transactions";
 
@@ -15,6 +17,7 @@ interface Props {
   onClose: () => void;
   accounts: Account[];
   goals: Goal[];
+  editing?: Transaction | null;
 }
 
 interface Row {
@@ -31,11 +34,12 @@ function blankRow(): Row {
   return { date: today(), description: "", amount: "", category: "", type: "expense" };
 }
 
-export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
+export function AddTransactionModal({ open, onClose, accounts, goals, editing = null }: Props) {
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<Mode>("single");
   const [error, setError] = useState<string | null>(null);
   const [accountId, setAccountId] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Single mode state
   const [type, setType] = useState<TxType>("expense");
@@ -49,22 +53,37 @@ export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
   // Multiple mode state
   const [rows, setRows] = useState<Row[]>([blankRow(), blankRow(), blankRow()]);
 
-  function reset() {
-    setMode("single");
+  const isEditing = editing !== null;
+
+  useEffect(() => {
+    if (!open) return;
     setError(null);
-    setAccountId("");
-    setType("expense");
-    setDate(today());
-    setAmount("");
-    setDescription("");
-    setCategory("");
-    setGoalId("");
-    setNote("");
-    setRows([blankRow(), blankRow(), blankRow()]);
-  }
+    setConfirmDelete(false);
+    if (editing) {
+      setMode("single");
+      setType(editing.type);
+      setDate(editing.date);
+      setAmount(String(Number(editing.amount)));
+      setDescription(editing.description);
+      setCategory(editing.category);
+      setAccountId(editing.account_id ?? "");
+      setGoalId(editing.goal_id ?? "");
+      setNote(editing.note ?? "");
+    } else {
+      setMode("single");
+      setAccountId("");
+      setType("expense");
+      setDate(today());
+      setAmount("");
+      setDescription("");
+      setCategory("");
+      setGoalId("");
+      setNote("");
+      setRows([blankRow(), blankRow(), blankRow()]);
+    }
+  }, [open, editing]);
 
   function handleClose() {
-    reset();
     onClose();
   }
 
@@ -81,21 +100,38 @@ export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
       return;
     }
 
+    const payload = {
+      date,
+      description: description.trim() || category,
+      amount: num,
+      type,
+      category,
+      account_id: accountId || null,
+      goal_id: SAVINGS_CATEGORIES.has(category) && goalId ? goalId : null,
+      note: note.trim() || null,
+    };
+
     startTransition(async () => {
-      const res = await addTransaction({
-        date,
-        description: description.trim() || category,
-        amount: num,
-        type,
-        category,
-        account_id: accountId || null,
-        goal_id: SAVINGS_CATEGORIES.has(category) && goalId ? goalId : null,
-        note: note.trim() || null,
-      });
+      const res = editing
+        ? await updateTransaction(editing.id, payload)
+        : await addTransaction(payload);
       if (res.error) {
         setError(res.error);
         return;
       }
+      handleClose();
+    });
+  }
+
+  function handleDelete() {
+    if (!editing) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 2500);
+      return;
+    }
+    startTransition(async () => {
+      await deleteTransaction(editing.id);
       handleClose();
     });
   }
@@ -158,9 +194,11 @@ export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
       >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="section-label mb-1">{isMultiple ? "Bulk Entry" : "New Entry"}</p>
+            <p className="section-label mb-1">
+              {isEditing ? "Edit Entry" : isMultiple ? "Bulk Entry" : "New Entry"}
+            </p>
             <h2 className="text-xl font-bold page-title" style={{ color: "var(--text-primary)" }}>
-              Add Transaction{isMultiple ? "s" : ""}
+              {isEditing ? "Edit Transaction" : `Add Transaction${isMultiple ? "s" : ""}`}
             </h2>
           </div>
           <button onClick={handleClose} className="btn-ghost" style={{ padding: "6px 10px" }}>
@@ -168,18 +206,20 @@ export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
           </button>
         </div>
 
-        {/* Mode toggle */}
-        <div
-          className="flex gap-1 p-1 rounded-xl mb-5"
-          style={{ background: "var(--progress-bg)", border: "1px solid var(--border)" }}
-        >
-          <ModeButton active={mode === "single"} onClick={() => setMode("single")}>
-            Single
-          </ModeButton>
-          <ModeButton active={mode === "multiple"} onClick={() => setMode("multiple")}>
-            Multiple
-          </ModeButton>
-        </div>
+        {/* Mode toggle — hidden in edit mode */}
+        {!isEditing && (
+          <div
+            className="flex gap-1 p-1 rounded-xl mb-5"
+            style={{ background: "var(--progress-bg)", border: "1px solid var(--border)" }}
+          >
+            <ModeButton active={mode === "single"} onClick={() => setMode("single")}>
+              Single
+            </ModeButton>
+            <ModeButton active={mode === "multiple"} onClick={() => setMode("multiple")}>
+              Multiple
+            </ModeButton>
+          </div>
+        )}
 
         {error && (
           <div
@@ -367,11 +407,25 @@ export function AddTransactionModal({ open, onClose, accounts, goals }: Props) {
             <hr className="modal-divider" />
 
             <div className="flex gap-3">
-              <button type="button" onClick={handleClose} className="btn-ghost flex-1">
-                Cancel
-              </button>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="btn-ghost"
+                  style={{
+                    color: confirmDelete ? "var(--over)" : "var(--text-secondary)",
+                    borderColor: confirmDelete ? "var(--over-border)" : "var(--border)",
+                  }}
+                >
+                  {confirmDelete ? "Click again to confirm" : "Delete"}
+                </button>
+              ) : (
+                <button type="button" onClick={handleClose} className="btn-ghost flex-1">
+                  Cancel
+                </button>
+              )}
               <button type="submit" disabled={pending} className="btn-primary flex-1">
-                {pending ? "Saving…" : "Save Transaction"}
+                {pending ? "Saving…" : isEditing ? "Save Changes" : "Save Transaction"}
               </button>
             </div>
           </form>

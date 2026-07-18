@@ -24,6 +24,7 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
   const [accFilter, setAccFilter] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [openCsv, setOpenCsv] = useState(false);
+  const [editing, setEditing] = useState<Transaction | null>(null);
 
   const summary = useMemo(() => {
     let income = 0;
@@ -144,11 +145,16 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
         {filtered.length === 0 ? (
           <EmptyState onAdd={() => setOpenAdd(true)} />
         ) : (
-          <TransactionTable transactions={filtered} accounts={accounts} goals={goals} />
+          <TransactionTable
+            transactions={filtered}
+            accounts={accounts}
+            goals={goals}
+            onEdit={(tx) => setEditing(tx)}
+          />
         )}
       </div>
 
@@ -157,6 +163,13 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
         onClose={() => setOpenAdd(false)}
         accounts={accounts}
         goals={goals}
+      />
+      <AddTransactionModal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        accounts={accounts}
+        goals={goals}
+        editing={editing}
       />
       <CsvImportModal
         open={openCsv}
