@@ -8,6 +8,7 @@ import { fmtCurrency, fmtDate } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { AccountsModal } from "./accounts-modal";
 import { BudgetsModal } from "./budgets-modal";
+import { LoansModal } from "./loans-modal";
 
 interface Props {
   ym: string;
@@ -31,11 +32,15 @@ export function DashboardClient({
   const router = useRouter();
   const [openAccounts, setOpenAccounts] = useState(false);
   const [openBudgets, setOpenBudgets] = useState(false);
+  const [openLoans, setOpenLoans] = useState(false);
 
   const netWorth = accounts.reduce((sum, a) => {
     const sign = a.type === "credit" ? -1 : 1;
     return sum + sign * Number(a.balance);
   }, 0);
+
+  const loanAccounts = accounts.filter((a) => a.type === "credit");
+  const loanBalance = loanAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
 
   function shiftMonth(direction: number) {
     const [y, m] = ym.split("-").map(Number);
@@ -73,7 +78,13 @@ export function DashboardClient({
         <StatCard label="Net Worth" value={fmtCurrency(netWorth)} accent />
         <StatCard label="Income" value={fmtCurrency(summary.income, { sign: true })} color="var(--accent)" />
         <StatCard label="Spent" value={fmtCurrency(-summary.expense)} color="var(--over)" />
-        <StatCard label="Saved" value={fmtCurrency(summary.saved, { sign: true })} color="var(--accent)" />
+        <StatCard
+          label="Loan Balance"
+          value={fmtCurrency(loanBalance)}
+          color={loanBalance > 0 ? "var(--violet)" : "var(--text-muted)"}
+          sub={loanAccounts.length === 0 ? "No loans added" : `${loanAccounts.length} loan${loanAccounts.length === 1 ? "" : "s"}`}
+          onClick={() => setOpenLoans(true)}
+        />
       </div>
 
       {/* Two-column body */}
@@ -216,6 +227,15 @@ export function DashboardClient({
 
       <AccountsModal open={openAccounts} onClose={() => setOpenAccounts(false)} accounts={accounts} />
       <BudgetsModal open={openBudgets} onClose={() => setOpenBudgets(false)} budgetProgress={budgetProgress} />
+      <LoansModal
+        open={openLoans}
+        onClose={() => setOpenLoans(false)}
+        loans={loanAccounts}
+        onManage={() => {
+          setOpenLoans(false);
+          setOpenAccounts(true);
+        }}
+      />
     </div>
   );
 }
@@ -225,18 +245,40 @@ function StatCard({
   value,
   color,
   accent,
+  sub,
+  onClick,
 }: {
   label: string;
   value: string;
   color?: string;
   accent?: boolean;
+  sub?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="glass rounded-2xl p-5">
+    <div
+      className="glass rounded-2xl p-5"
+      onClick={onClick}
+      style={{
+        cursor: onClick ? "pointer" : "default",
+        transition: "transform 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        if (onClick) e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
       <p className="section-label mb-1">{label}</p>
       <p className={"text-2xl font-bold " + (accent ? "accent-num" : "")} style={{ color: color ?? "var(--text-primary)" }}>
         <G>{value}</G>
       </p>
+      {sub && (
+        <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+          {sub}
+        </p>
+      )}
     </div>
   );
 }

@@ -119,10 +119,10 @@ export interface Paystub {
 // Categories — shown in dropdowns and used for auto-categorization
 // ──────────────────────────────────────────────────────────────
 export const CATEGORIES = {
-  needs: ['Rent / Mortgage', 'Utilities', 'Groceries', 'Loan Payment', 'Insurance'],
-  wants: ['Eating Out', 'Subscriptions', 'Ride Share', 'Shopping', 'Entertainment', 'Misc'],
-  savings: ['Savings Transfer', 'Investment', '401k', 'Roth IRA'],
-  income: ['Paycheck', 'Freelance', 'Refund', 'Other Income'],
+  needs: ['Rent & Utilities', 'Loan Payments', 'Groceries'],
+  wants: ['Eating Out', 'Ride Share', 'Misc'],
+  savings: ['Savings & Investments'],
+  income: ['Paycheck', 'Other Income'],
 } as const;
 
 export const ALL_CATEGORIES: string[] = [

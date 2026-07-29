@@ -61,10 +61,15 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
 
   function handleImport() {
     setError(null);
+    const missingDate = rows.filter((r) => !r.date).length;
+    if (missingDate > 0) {
+      setError(`${missingDate} row${missingDate === 1 ? " has" : "s have"} an unparseable date. Fill in the date column before importing.`);
+      return;
+    }
     const valid: TransactionInput[] = [];
     for (const r of rows) {
       const amt = parseFloat(r.amount);
-      if (!r.description.trim() || !amt || !r.category) continue;
+      if (!r.description.trim() || !amt || !r.category || !r.date) continue;
       valid.push({
         date: r.date,
         description: r.description.trim(),
@@ -161,6 +166,15 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
               </select>
             </div>
 
+            {rows.filter((r) => !r.date).length > 0 && (
+              <div
+                className="text-sm px-3 py-2 rounded-lg mb-3"
+                style={{ background: "var(--warn-bg, rgba(180,83,9,0.08))", color: "var(--warn)", border: "1px solid var(--warn, rgba(180,83,9,0.35))" }}
+              >
+                {rows.filter((r) => !r.date).length} row
+                {rows.filter((r) => !r.date).length === 1 ? " has" : "s have"} an unrecognized date format. Fill in the date column (highlighted red) before importing.
+              </div>
+            )}
             <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>
               {rows.length} row{rows.length === 1 ? "" : "s"} found. Review and edit before importing.
             </p>
@@ -180,7 +194,7 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
                 <tbody>
                   {rows.map((row, i) => (
                     <tr key={i}>
-                      <Td><CompactInput type="date" value={row.date} onChange={(v) => update(i, "date", v)} /></Td>
+                      <Td><CompactInput type="date" value={row.date} onChange={(v) => update(i, "date", v)} invalid={!row.date} /></Td>
                       <Td><CompactInput type="text" value={row.description} onChange={(v) => update(i, "description", v)} /></Td>
                       <Td><CompactInput type="number" value={row.amount} onChange={(v) => update(i, "amount", v)} /></Td>
                       <Td>
@@ -276,7 +290,9 @@ function parseCsv(text: string): ParsedRow[] {
       category,
       type,
     };
-  }).filter((r) => r.date && r.description && parseFloat(r.amount) > 0);
+    // Keep rows with unparseable dates so the user can fix them in the preview,
+    // instead of silently dropping them.
+  }).filter((r) => r.description && parseFloat(r.amount) > 0);
 }
 
 function parseLine(line: string): string[] {
@@ -307,19 +323,38 @@ function findCol(headers: string[], candidates: string[]): number {
 }
 
 function normalizeDate(raw: string): string {
-  // Try YYYY-MM-DD first
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
-  // MM/DD/YYYY or M/D/YYYY
-  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) {
-    const [, mo, d, y] = m;
+  const s = raw.trim();
+  if (!s) return "";
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const iso = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (iso) {
+    const [, y, mo, d] = iso;
     return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
-  // Fall back to Date parsing
-  const d = new Date(raw);
-  if (!isNaN(d.getTime())) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // M/D/YYYY or M-D-YYYY (4-digit year)
+  const m4 = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (m4) {
+    const [, mo, d, y] = m4;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
+
+  // M/D/YY or M-D-YY (2-digit year — assume 20YY)
+  const m2 = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2})$/);
+  if (m2) {
+    const [, mo, d, y] = m2;
+    return `20${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // M/D or M-D (no year → current year)
+  const md = s.match(/^(\d{1,2})[/-](\d{1,2})$/);
+  if (md) {
+    const [, mo, d] = md;
+    const year = new Date().getFullYear();
+    return `${year}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
   return "";
 }
 
@@ -340,7 +375,7 @@ function Th({ children }: { children?: React.ReactNode }) {
 function Td({ children }: { children: React.ReactNode }) {
   return <td style={{ padding: "5px 4px", verticalAlign: "middle" }}>{children}</td>;
 }
-function CompactInput({ type, value, onChange }: { type: string; value: string; onChange: (v: string) => void }) {
+function CompactInput({ type, value, onChange, invalid }: { type: string; value: string; onChange: (v: string) => void; invalid?: boolean }) {
   return (
     <input
       type={type}
@@ -348,7 +383,8 @@ function CompactInput({ type, value, onChange }: { type: string; value: string; 
       onChange={(e) => onChange(e.target.value)}
       style={{
         width: "100%", padding: "7px 10px", borderRadius: 9,
-        border: "1px solid var(--border)", background: "var(--progress-bg)",
+        border: invalid ? "1px solid var(--over)" : "1px solid var(--border)",
+        background: invalid ? "var(--over-bg)" : "var(--progress-bg)",
         color: "var(--text-primary)", fontSize: 13, outline: "none",
       }}
     />

@@ -7,35 +7,21 @@
 const RULES: Array<{ match: RegExp; category: string }> = [
   // Income
   { match: /paycheck|payroll|direct deposit|salary/i, category: "Paycheck" },
-  { match: /refund|reimbursement/i, category: "Refund" },
+  { match: /refund|reimbursement|freelance/i, category: "Other Income" },
 
-  // Needs — housing/utilities
-  { match: /rent|mortgage|landlord/i, category: "Rent / Mortgage" },
-  { match: /electric|water|gas bill|internet|comcast|xfinity|verizon|att|t-mobile/i, category: "Utilities" },
-  { match: /insurance|geico|progressive|state farm|allstate/i, category: "Insurance" },
-  { match: /sallie mae|nelnet|navient|loan payment/i, category: "Loan Payment" },
+  // Needs
+  { match: /rent|mortgage|landlord|electric|water|gas bill|internet|comcast|xfinity|verizon|at&t|att|t-mobile|insurance|geico|progressive|state farm|allstate/i, category: "Rent & Utilities" },
+  { match: /sallie mae|nelnet|navient|loan/i, category: "Loan Payments" },
+  { match: /trader joe|whole foods|kroger|publix|aldi|safeway|costco|walmart grocery|grocery/i, category: "Groceries" },
 
-  // Needs — groceries
-  { match: /trader joe|whole foods|kroger|publix|aldi|safeway|costco|walmart grocery/i, category: "Groceries" },
-
-  // Wants — food/dining
+  // Wants
   { match: /starbucks|dunkin|chipotle|mcdonald|uber eats|doordash|grubhub|chick.?fil.?a|restaurant|cafe|pizza/i, category: "Eating Out" },
-
-  // Wants — transport
   { match: /uber|lyft|taxi/i, category: "Ride Share" },
 
-  // Wants — subscriptions
-  { match: /netflix|spotify|hulu|disney|hbo|apple|google|amazon prime|youtube premium|patreon/i, category: "Subscriptions" },
-
-  // Wants — shopping/entertainment
-  { match: /amazon|target(?!.*grocery)|ebay|etsy/i, category: "Shopping" },
-  { match: /movie|theater|cinema|concert|ticket/i, category: "Entertainment" },
-
   // Savings
-  { match: /savings transfer|to savings|sav\b/i, category: "Savings Transfer" },
-  { match: /401\s?k/i, category: "401k" },
-  { match: /roth|ira/i, category: "Roth IRA" },
-  { match: /vanguard|fidelity|schwab|robinhood/i, category: "Investment" },
+  { match: /savings|invest|401\s?k|roth|ira|vanguard|fidelity|schwab|robinhood/i, category: "Savings & Investments" },
+
+  // Everything else falls through to null → user picks "Misc" or another.
 ];
 
 export function autoCategorize(description: string): string | null {
