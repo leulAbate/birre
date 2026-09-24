@@ -2,32 +2,42 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Account, Recurring, Transaction } from "@/lib/types";
+import type { Account, Budget } from "@/lib/types";
 import type { BudgetProgress, MonthSummary } from "@/lib/calculations/summary";
-import { fmtCurrency, fmtDate } from "@/lib/utils";
+import type { GoalProgress } from "@/lib/calculations/goals";
+import { fmtCurrency } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { AccountsModal } from "./accounts-modal";
 import { BudgetsModal } from "./budgets-modal";
 import { LoansModal } from "./loans-modal";
+import { CategoryBreakdown } from "./category-breakdown";
+import { SpendingVisual } from "./spending-visual";
+import { AiPulse } from "./ai-pulse";
+import { ActivePlans } from "./active-plans";
+import type { PulseInsight } from "@/lib/calculations/pulse";
+
+interface TrendPoint { label: string; expense: number; }
 
 interface Props {
   ym: string;
   accounts: Account[];
   summary: MonthSummary;
+  budgets: Budget[];
   budgetProgress: BudgetProgress[];
-  topExpenses: Transaction[];
-  recentTransactions: Transaction[];
-  recurring: Recurring[];
+  trend: TrendPoint[];
+  insights: PulseInsight[];
+  activePlans: GoalProgress[];
 }
 
 export function DashboardClient({
   ym,
   accounts,
   summary,
+  budgets,
   budgetProgress,
-  topExpenses,
-  recentTransactions,
-  recurring,
+  trend,
+  insights,
+  activePlans,
 }: Props) {
   const router = useRouter();
   const [openAccounts, setOpenAccounts] = useState(false);
@@ -73,11 +83,23 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Top stats */}
+      {/* Top stats — clickable to open detail modals */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Net Worth" value={fmtCurrency(netWorth)} accent />
+        <StatCard
+          label="Net Worth"
+          value={fmtCurrency(netWorth)}
+          accent
+          sub={`${accounts.length} account${accounts.length === 1 ? "" : "s"}`}
+          onClick={() => setOpenAccounts(true)}
+        />
         <StatCard label="Income" value={fmtCurrency(summary.income, { sign: true })} color="var(--accent)" />
-        <StatCard label="Spent" value={fmtCurrency(-summary.expense)} color="var(--over)" />
+        <StatCard
+          label="Spent"
+          value={fmtCurrency(-summary.expense)}
+          color="var(--over)"
+          sub={budgets.length > 0 ? `${budgetProgress.filter((b) => b.percent > 100).length} over budget` : "No budgets set"}
+          onClick={() => setOpenBudgets(true)}
+        />
         <StatCard
           label="Loan Balance"
           value={fmtCurrency(loanBalance)}
@@ -87,143 +109,26 @@ export function DashboardClient({
         />
       </div>
 
-      {/* Two-column body */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Accounts */}
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label">Accounts</p>
-            <button onClick={() => setOpenAccounts(true)} className="text-xs font-medium" style={{ color: "var(--accent)" }}>
-              Manage
-            </button>
-          </div>
-          {accounts.length === 0 ? (
-            <EmptyHint
-              text="No accounts yet. Add one to see your net worth."
-              cta="Add an account"
-              onClick={() => setOpenAccounts(true)}
-            />
-          ) : (
-            <div className="space-y-0">
-              {accounts.map((a) => (
-                <div key={a.id} className="account-row">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{a.name}</p>
-                    <p className="text-xs capitalize" style={{ color: "var(--text-muted)" }}>{a.type}</p>
-                  </div>
-                  <p className="text-sm font-semibold" style={{ color: a.type === "credit" ? "var(--over)" : "var(--text-primary)" }}>
-                    <G>{(a.type === "credit" ? "−" : "") + fmtCurrency(Number(a.balance))}</G>
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Category Breakdown + right column (Spending Visual + Active Plans) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+        <CategoryBreakdown
+          byCategory={summary.byCategory}
+          saved={summary.saved}
+          budgets={budgets}
+          monthLabel={monthLabel}
+        />
+        <div className="flex flex-col gap-4">
+          <SpendingVisual
+            byCategory={summary.byCategory}
+            totalExpense={summary.expense}
+            trend={trend}
+          />
+          <ActivePlans plans={activePlans} />
         </div>
-
-        {/* Budgets */}
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label">Budgets</p>
-            <button onClick={() => setOpenBudgets(true)} className="text-xs font-medium" style={{ color: "var(--accent)" }}>
-              Manage
-            </button>
-          </div>
-          {budgetProgress.length === 0 ? (
-            <EmptyHint
-              text="Set monthly limits for categories you watch."
-              cta="Set a budget"
-              onClick={() => setOpenBudgets(true)}
-            />
-          ) : (
-            <div className="space-y-3">
-              {budgetProgress.slice(0, 5).map((b) => (
-                <BudgetRow key={b.category} item={b} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top expenses */}
-        <div className="glass rounded-2xl p-5">
-          <p className="section-label mb-3">Top Expenses This Month</p>
-          {topExpenses.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>No expenses recorded yet.</p>
-          ) : (
-            <div className="space-y-0">
-              {topExpenses.map((tx) => (
-                <div key={tx.id} className="account-row">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{tx.description}</p>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      {fmtDate(tx.date)} · {tx.category}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--over)" }}>
-                    <G>{"−" + fmtCurrency(Number(tx.amount))}</G>
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent transactions */}
-        <div className="glass rounded-2xl p-5">
-          <p className="section-label mb-3">Recent Transactions</p>
-          {recentTransactions.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Nothing here yet.</p>
-          ) : (
-            <div className="space-y-0">
-              {recentTransactions.map((tx) => {
-                const color =
-                  tx.type === "income" ? "var(--accent)" :
-                  tx.type === "expense" ? "var(--over)" :
-                  "var(--text-secondary)";
-                const sign = tx.type === "income" ? "+" : tx.type === "expense" ? "−" : "";
-                return (
-                  <div key={tx.id} className="account-row">
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{tx.description}</p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        {fmtDate(tx.date)} · {tx.category}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold" style={{ color }}>
-                      <G>{sign + fmtCurrency(Number(tx.amount))}</G>
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Subscriptions */}
-        {recurring.length > 0 && (
-          <div className="glass rounded-2xl p-5 lg:col-span-2">
-            <p className="section-label mb-3">Recurring & Subscriptions</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {recurring.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between p-3 rounded-xl"
-                  style={{ background: "var(--progress-bg)", border: "1px solid var(--border)" }}
-                >
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{r.name}</p>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      {r.category} · {r.frequency}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    <G>{fmtCurrency(Number(r.amount))}</G>
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* AI Pulse */}
+      <AiPulse insights={insights} monthLabel={monthLabel} />
 
       <AccountsModal open={openAccounts} onClose={() => setOpenAccounts(false)} accounts={accounts} />
       <BudgetsModal open={openBudgets} onClose={() => setOpenBudgets(false)} budgetProgress={budgetProgress} />
@@ -279,46 +184,6 @@ function StatCard({
           {sub}
         </p>
       )}
-    </div>
-  );
-}
-
-function BudgetRow({ item }: { item: BudgetProgress }) {
-  const overBy = item.percent - 100;
-  const fillColor =
-    item.percent >= 100 ? "var(--over)" :
-    item.percent >= 80 ? "var(--warn)" :
-    "var(--accent)";
-  return (
-    <div>
-      <div className="flex items-end justify-between mb-1">
-        <p className="text-sm" style={{ color: "var(--text-primary)" }}>{item.category}</p>
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          <G>{fmtCurrency(item.spent)}</G> / <G>{fmtCurrency(item.budgeted)}</G>
-        </p>
-      </div>
-      <div className="progress-track">
-        <div
-          className="progress-fill"
-          style={{ width: `${Math.min(100, item.percent)}%`, background: fillColor }}
-        />
-      </div>
-      {overBy > 0 && (
-        <p className="text-xs mt-1" style={{ color: "var(--over)" }}>
-          Over by <G>{fmtCurrency(-item.remaining)}</G>
-        </p>
-      )}
-    </div>
-  );
-}
-
-function EmptyHint({ text, cta, onClick }: { text: string; cta: string; onClick: () => void }) {
-  return (
-    <div>
-      <p className="text-sm mb-2" style={{ color: "var(--text-muted)" }}>{text}</p>
-      <button onClick={onClick} className="text-sm font-medium" style={{ color: "var(--accent)" }}>
-        {cta} →
-      </button>
     </div>
   );
 }

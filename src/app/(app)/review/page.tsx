@@ -72,6 +72,7 @@ async function fetchPrevMonths(
         id: "",
         user_id: "",
         account_id: null,
+        to_account_id: null,
         goal_id: null,
         paystub_id: null,
         date: "",

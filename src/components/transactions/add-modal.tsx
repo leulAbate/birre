@@ -48,6 +48,7 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [goalId, setGoalId] = useState("");
+  const [toAccountId, setToAccountId] = useState("");
   const [note, setNote] = useState("");
 
   // Multiple mode state
@@ -67,11 +68,13 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
       setDescription(editing.description);
       setCategory(editing.category);
       setAccountId(editing.account_id ?? "");
+      setToAccountId(editing.to_account_id ?? "");
       setGoalId(editing.goal_id ?? "");
       setNote(editing.note ?? "");
     } else {
       setMode("single");
       setAccountId("");
+      setToAccountId("");
       setType("expense");
       setDate(today());
       setAmount("");
@@ -99,6 +102,16 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
       setError("Pick a category");
       return;
     }
+    if (type === "transfer") {
+      if (!accountId || !toAccountId) {
+        setError("Transfers need both a From and To account");
+        return;
+      }
+      if (accountId === toAccountId) {
+        setError("From and To must be different accounts");
+        return;
+      }
+    }
 
     const payload = {
       date,
@@ -107,6 +120,7 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
       type,
       category,
       account_id: accountId || null,
+      to_account_id: type === "transfer" ? toAccountId || null : null,
       goal_id: SAVINGS_CATEGORIES.has(category) && goalId ? goalId : null,
       note: note.trim() || null,
     };
@@ -335,7 +349,7 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
                 </select>
               </div>
               <div>
-                <label className="modal-label">Account</label>
+                <label className="modal-label">{type === "transfer" ? "From account" : "Account"}</label>
                 <select
                   className="modal-select"
                   value={accountId}
@@ -350,6 +364,26 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
                 </select>
               </div>
             </div>
+
+            {type === "transfer" && (
+              <div>
+                <label className="modal-label">To account</label>
+                <select
+                  className="modal-select"
+                  value={toAccountId}
+                  onChange={(e) => setToAccountId(e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {accounts
+                    .filter((a) => a.id !== accountId)
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
 
             {showGoalField && goals.length > 0 && (
               <div>

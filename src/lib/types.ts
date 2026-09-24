@@ -50,6 +50,7 @@ export interface Transaction {
   id: string;
   user_id: string;
   account_id: string | null;
+  to_account_id: string | null;
   goal_id: string | null;
   paystub_id: string | null;
   date: string;
