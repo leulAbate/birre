@@ -134,3 +134,19 @@ export const ALL_CATEGORIES: string[] = [
 ];
 
 export const SAVINGS_CATEGORIES = new Set<string>(CATEGORIES.savings);
+
+export const CATEGORY_ICONS: Record<string, string> = {
+  'Rent & Utilities': '🏠',
+  'Loan Payments': '🎓',
+  'Groceries': '🛒',
+  'Eating Out': '🍜',
+  'Ride Share': '🚗',
+  'Misc': '🛍️',
+  'Savings & Investments': '💰',
+  'Paycheck': '💵',
+  'Other Income': '💸',
+};
+
+export function iconFor(category: string): string {
+  return CATEGORY_ICONS[category] ?? '📄';
+}

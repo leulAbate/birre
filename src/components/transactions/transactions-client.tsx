@@ -2,22 +2,26 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Account, Goal, Transaction } from "@/lib/types";
+import type { Account, Budget, Goal, Transaction } from "@/lib/types";
 import { ALL_CATEGORIES } from "@/lib/types";
 import { fmtCurrency, fmtDate } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { AddTransactionModal } from "./add-modal";
 import { CsvImportModal } from "./csv-import-modal";
 import { TransactionTable } from "./transaction-table";
+import { CategoryView } from "./category-view";
 
 interface Props {
   ym: string; // YYYY-MM
   transactions: Transaction[];
   accounts: Account[];
   goals: Goal[];
+  budgets: Budget[];
 }
 
-export function TransactionsClient({ ym, transactions, accounts, goals }: Props) {
+type ViewMode = "date" | "category";
+
+export function TransactionsClient({ ym, transactions, accounts, goals, budgets }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
@@ -25,6 +29,7 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
   const [openAdd, setOpenAdd] = useState(false);
   const [openCsv, setOpenCsv] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [view, setView] = useState<ViewMode>("category");
 
   const summary = useMemo(() => {
     let income = 0;
@@ -106,16 +111,34 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters + view toggle */}
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search transactions…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="modal-input"
-            style={{ maxWidth: 280 }}
-          />
+          <div style={{ position: "relative", maxWidth: 280, flex: 1 }}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--text-muted)",
+                pointerEvents: "none",
+              }}
+            >
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search transactions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="modal-input"
+              style={{ paddingLeft: 34, width: "100%" }}
+            />
+          </div>
           <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="modal-select" style={{ width: "auto" }}>
             <option value="">All Categories</option>
             {ALL_CATEGORIES.map((c) => (
@@ -141,13 +164,28 @@ export function TransactionsClient({ ym, transactions, accounts, goals }: Props)
               Clear
             </button>
           )}
+          <div
+            className="flex items-center gap-1 rounded-lg p-1 ml-auto"
+            style={{ background: "var(--hover-bg)" }}
+          >
+            <ViewButton active={view === "date"} onClick={() => setView("date")}>Date</ViewButton>
+            <ViewButton active={view === "category"} onClick={() => setView("category")}>Category</ViewButton>
+          </div>
         </div>
       </div>
 
       {/* List */}
       <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
         {filtered.length === 0 ? (
-          <EmptyState onAdd={() => setOpenAdd(true)} />
+          <EmptyState onAdd={() => setOpenAdd(true)} filtered={hasFilter} />
+        ) : view === "category" ? (
+          <CategoryView
+            transactions={filtered}
+            accounts={accounts}
+            goals={goals}
+            budgets={budgets}
+            onEdit={(tx) => setEditing(tx)}
+          />
         ) : (
           <TransactionTable
             transactions={filtered}
@@ -204,7 +242,19 @@ function SummaryCard({
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, filtered }: { onAdd: () => void; filtered: boolean }) {
+  if (filtered) {
+    return (
+      <div className="glass rounded-2xl p-8 text-center mt-4">
+        <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          No matches
+        </p>
+        <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+          Try clearing filters or changing the month.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="glass rounded-2xl p-8 text-center mt-4">
       <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -217,6 +267,35 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         Add your first transaction
       </button>
     </div>
+  );
+}
+
+function ViewButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "5px 12px",
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 600,
+        cursor: "pointer",
+        background: active ? "var(--bg-card-solid)" : "transparent",
+        color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        border: "none",
+        transition: "all 0.15s",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
