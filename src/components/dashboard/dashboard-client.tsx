@@ -16,6 +16,7 @@ import { CategoryBreakdown } from "./category-breakdown";
 import { SpendingVisual } from "./spending-visual";
 import { AiPulse } from "./ai-pulse";
 import { ActivePlans } from "./active-plans";
+import { QuickAddBar } from "./quick-add-bar";
 import type { PulseInsight } from "@/lib/calculations/pulse";
 
 interface TrendPoint { label: string; expense: number; }
@@ -46,6 +47,7 @@ export function DashboardClient({
   const [openFreeToSpend, setOpenFreeToSpend] = useState(false);
   const [openSpent, setOpenSpent] = useState(false);
   const [openLoans, setOpenLoans] = useState(false);
+  const [quickAdd, setQuickAdd] = useState(false);
 
   const netWorth = accounts.reduce((sum, a) => {
     const sign = a.type === "credit" ? -1 : 1;
@@ -104,7 +106,18 @@ export function DashboardClient({
           </div>
           <h1 className="text-2xl font-bold page-title">Dashboard</h1>
         </div>
+        <button
+          onClick={() => setQuickAdd((v) => !v)}
+          className="btn-primary flex items-center gap-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+          </svg>
+          Add Expense
+        </button>
       </div>
+
+      <QuickAddBar open={quickAdd} onClose={() => setQuickAdd(false)} accounts={accounts} />
 
       {/* Top stats — all clickable to open detail modals */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -3,7 +3,7 @@ import { getTransactions, monthRange } from "@/lib/data";
 import { computeBudgetProgress, computeMonthSummary } from "@/lib/calculations/summary";
 import { computePulseScore } from "@/lib/calculations/pulse";
 import { ReviewClient } from "@/components/review/review-client";
-import type { Budget, MonthlyNote } from "@/lib/types";
+import type { Budget, MonthlyNote, Transaction } from "@/lib/types";
 
 interface Props {
   searchParams: Promise<{ month?: string }>;
@@ -36,6 +36,7 @@ export default async function ReviewPage({ searchParams }: Props) {
       ym={ym}
       monthStart={start}
       summary={summary}
+      budgets={budgets}
       budgetProgress={budgetProgress}
       pulse={pulse}
       trend={trendTxs}
@@ -44,18 +45,21 @@ export default async function ReviewPage({ searchParams }: Props) {
   );
 }
 
-interface TrendPoint {
-  label: string; // "Feb"
+export interface TrendPoint {
+  label: string;                    // "Feb"
+  ym: string;                       // "2026-02"
   income: number;
   expense: number;
   saved: number;
+  savingsRate: number;              // 0-100
+  byCategory: Record<string, number>;
 }
 
 async function fetchPrevMonths(
   supabase: Awaited<ReturnType<typeof createClient>>,
   year: number,
   monthIdx: number,
-  count: number
+  count: number,
 ): Promise<TrendPoint[]> {
   const points: TrendPoint[] = [];
   for (let i = count - 1; i >= 0; i--) {
@@ -66,26 +70,24 @@ async function fetchPrevMonths(
       .select("amount, type, category")
       .gte("date", start)
       .lte("date", end);
+    const rows = (data ?? []) as Array<Pick<Transaction, "amount" | "type" | "category">>;
     const summary = computeMonthSummary(
-      (data ?? []).map((r) => ({
+      rows.map((r) => ({
         ...r,
-        id: "",
-        user_id: "",
-        account_id: null,
-        to_account_id: null,
-        goal_id: null,
-        paystub_id: null,
-        date: "",
-        description: "",
-        note: null,
-        created_at: "",
-      }))
+        id: "", user_id: "", account_id: null, to_account_id: null,
+        goal_id: null, paystub_id: null, date: "", description: "",
+        note: null, created_at: "",
+      })),
     );
+    const savingsRate = summary.income > 0 ? (summary.saved / summary.income) * 100 : 0;
     points.push({
       label: d.toLocaleDateString(undefined, { month: "short" }),
+      ym: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
       income: summary.income,
       expense: summary.expense,
       saved: summary.saved,
+      savingsRate,
+      byCategory: Object.fromEntries(summary.byCategory),
     });
   }
   return points;

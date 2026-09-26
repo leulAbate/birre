@@ -50,5 +50,18 @@ export async function updateGoal(id: string, input: Partial<GoalInput>) {
   const { error } = await supabase.from("goals").update(input).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/plans");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function updateGoalStatus(id: string, status: GoalStatus) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase.from("goals").update({ status }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/plans");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

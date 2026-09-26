@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Paystub, Profile } from "@/lib/types";
 import { projectYTD, totalsFor } from "@/lib/calculations/paystubs";
 import { PaycheckDecoder } from "./paycheck-decoder";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function TaxClient({ profile, paystubs, year }: Props) {
+  const router = useRouter();
   const [modalState, setModalState] = useState<
     { open: false } | { open: true; editing: Paystub | null }
   >({ open: false });
@@ -25,12 +27,36 @@ export function TaxClient({ profile, paystubs, year }: Props) {
   const projection = projectYTD(paystubs, frequency);
   const activeTemplate = projection?.activeTemplate ?? null;
 
+  const currentYear = new Date().getFullYear();
+  const canGoForward = year < currentYear;
+
+  function shiftYear(direction: number) {
+    router.push(`/tax?year=${year + direction}`);
+  }
+
   return (
     <div className="h-full overflow-y-auto p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="section-label mb-1">Tax Year {year}</p>
+          <div className="flex items-center gap-1 mb-1">
+            <button onClick={() => shiftYear(-1)} className="month-nav-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+              </svg>
+            </button>
+            <span className="section-label" style={{ padding: "2px 6px" }}>Tax Year {year}</span>
+            <button
+              onClick={() => canGoForward && shiftYear(1)}
+              disabled={!canGoForward}
+              className="month-nav-btn"
+              style={{ opacity: canGoForward ? 1 : 0.3, cursor: canGoForward ? "pointer" : "not-allowed" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </button>
+          </div>
           <h1 className="text-2xl font-bold page-title">Tax</h1>
         </div>
         <button

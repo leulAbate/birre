@@ -1,33 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { MonthlyNote } from "@/lib/types";
+import type { Budget, MonthlyNote } from "@/lib/types";
 import type { BudgetProgress, MonthSummary } from "@/lib/calculations/summary";
 import type { PulseScore } from "@/lib/calculations/pulse";
+import type { TrendPoint } from "@/app/(app)/review/page";
 import { fmtCurrency } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { PulseRing } from "./pulse-ring";
 import { TrendBars } from "./trend-bars";
 import { NotesField } from "./notes-field";
-
-interface TrendPoint {
-  label: string;
-  income: number;
-  expense: number;
-  saved: number;
-}
+import { CategorySparklines } from "./category-sparklines";
+import { SavingsTrend } from "./savings-trend";
+import { MomDiff } from "./mom-diff";
+import { AiInsights } from "./ai-insights";
 
 interface Props {
   ym: string;
   monthStart: string;
   summary: MonthSummary;
+  budgets: Budget[];
   budgetProgress: BudgetProgress[];
   pulse: PulseScore;
   trend: TrendPoint[];
   note: MonthlyNote | null;
 }
 
-export function ReviewClient({ ym, monthStart, summary, budgetProgress, pulse, trend, note }: Props) {
+export function ReviewClient({
+  ym, monthStart, summary, budgets, budgetProgress, pulse, trend, note,
+}: Props) {
   const router = useRouter();
 
   function shiftMonth(direction: number) {
@@ -38,6 +39,9 @@ export function ReviewClient({ ym, monthStart, summary, budgetProgress, pulse, t
   }
 
   const monthLabel = formatMonth(ym);
+
+  const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
+  const budgetUsedPct = totalBudget > 0 ? (summary.expense / totalBudget) * 100 : 0;
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-4">
@@ -61,64 +65,89 @@ export function ReviewClient({ ym, monthStart, summary, budgetProgress, pulse, t
         </div>
       </div>
 
-      {/* Summary strip */}
+      {/* Summary strip: Income · Total Spent · Saved · Budget Used */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Income" value={fmtCurrency(summary.income, { sign: true })} color="var(--accent)" />
-        <Stat label="Spent" value={fmtCurrency(-summary.expense)} color="var(--over)" />
+        <Stat label="Total Spent" value={fmtCurrency(summary.expense)} color="var(--text-primary)" />
         <Stat label="Saved" value={fmtCurrency(summary.saved, { sign: true })} color="var(--accent)" />
-        <Stat label="Savings Rate" value={`${pulse.savingsRate.toFixed(0)}%`} color="var(--text-primary)" rawValue />
+        <Stat
+          label="Budget Used"
+          value={totalBudget > 0 ? `${budgetUsedPct.toFixed(0)}%` : "—"}
+          color={
+            budgetUsedPct > 100 ? "var(--over)" :
+            budgetUsedPct >= 80 ? "var(--warn)" :
+            "var(--text-primary)"
+          }
+          rawValue
+        />
       </div>
 
       {/* Two-column body */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Pulse */}
-        <div className="glass rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="section-label">Monthly Pulse</p>
-            <span
-              className="status-ok"
-              style={{ fontSize: 11, padding: "2px 9px", borderRadius: 99, fontWeight: 700 }}
-            >
-              Grade {pulse.grade}
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <PulseRing score={pulse.total} />
-            <div className="flex-1 space-y-2">
-              <BreakdownRow label="Savings rate" value={pulse.breakdown.savingsRate} max={40} />
-              <BreakdownRow label="Cash flow" value={pulse.breakdown.cashFlow} max={20} />
-              <BreakdownRow label="Budget adherence" value={pulse.breakdown.budgetAdherence} max={30} />
-              <BreakdownRow label="Diversity" value={pulse.breakdown.diversityBonus} max={10} />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
+        {/* LEFT */}
+        <div className="space-y-4">
+          {/* Pulse + Grade */}
+          <div className="glass rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="section-label">Monthly Pulse</p>
+              <span
+                className="status-ok"
+                style={{ fontSize: 11, padding: "2px 9px", borderRadius: 99, fontWeight: 700 }}
+              >
+                Grade {pulse.grade}
+              </span>
+            </div>
+            <div className="flex items-center gap-6">
+              <PulseRing score={pulse.total} />
+              <div className="flex-1 space-y-2">
+                <BreakdownRow label="Savings rate" value={pulse.breakdown.savingsRate} max={40} />
+                <BreakdownRow label="Cash flow" value={pulse.breakdown.cashFlow} max={20} />
+                <BreakdownRow label="Budget adherence" value={pulse.breakdown.budgetAdherence} max={30} />
+                <BreakdownRow label="Diversity" value={pulse.breakdown.diversityBonus} max={10} />
+              </div>
             </div>
           </div>
+
+          {/* Goal vs Actual */}
+          <div className="glass rounded-2xl p-5">
+            <p className="section-label mb-3">Goal vs Actual</p>
+            {budgetProgress.length === 0 ? (
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                No budgets set. Define category limits on the Dashboard to see how you tracked.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {budgetProgress.map((b) => (
+                  <BudgetVsActual key={b.category} item={b} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4-month trend */}
+          <div className="glass rounded-2xl p-5">
+            <p className="section-label mb-4">Total Spending — Last {trend.length} Months</p>
+            <TrendBars points={trend} />
+          </div>
+
+          {/* Notes */}
+          <div className="glass rounded-2xl p-5">
+            <p className="section-label mb-3">Month Notes</p>
+            <NotesField monthStart={monthStart} initialContent={note?.content ?? ""} />
+          </div>
         </div>
 
-        {/* Goal vs actual */}
-        <div className="glass rounded-2xl p-5">
-          <p className="section-label mb-3">Goal vs Actual</p>
-          {budgetProgress.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              No budgets set. Define category limits on the Dashboard to see how you tracked.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {budgetProgress.map((b) => (
-                <BudgetVsActual key={b.category} item={b} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 4-month trend */}
-        <div className="glass rounded-2xl p-5 lg:col-span-2">
-          <p className="section-label mb-4">4-Month Trend</p>
-          <TrendBars points={trend} />
-        </div>
-
-        {/* Notes */}
-        <div className="glass rounded-2xl p-5 lg:col-span-2">
-          <p className="section-label mb-3">Notes</p>
-          <NotesField monthStart={monthStart} initialContent={note?.content ?? ""} />
+        {/* RIGHT */}
+        <div className="space-y-4">
+          <AiInsights
+            summary={summary}
+            budgetProgress={budgetProgress}
+            trend={trend}
+            monthLabel={monthLabel}
+          />
+          <CategorySparklines trend={trend} />
+          <SavingsTrend trend={trend} />
+          <MomDiff trend={trend} />
         </div>
       </div>
     </div>
