@@ -25,6 +25,7 @@ export function QuickAddBar({ open, onClose, accounts }: Props) {
   const [category, setCategory] = useState<string>(CATEGORIES.wants[0]);
   const [accountId, setAccountId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
 
   function handleDescChange(v: string) {
     setDesc(v);
@@ -43,22 +44,40 @@ export function QuickAddBar({ open, onClose, accounts }: Props) {
       setError("Description");
       return;
     }
+
+    // Optimistic: capture the payload, then immediately reset the form so
+    // the user can start typing the next one. The mutation runs in the
+    // background inside startTransition; revalidatePath refreshes lists.
+    const payload = {
+      date,
+      description: desc.trim(),
+      amount: num,
+      type: "expense" as const,
+      category,
+      account_id: accountId || null,
+    };
+    const savedLabel = `${payload.description} · ${payload.amount.toFixed(2)}`;
+
+    setDesc("");
+    setAmt("");
+    setDate(today());
+    setFlash(`Saved ${savedLabel}`);
+
     startTransition(async () => {
-      const res = await addTransaction({
-        date,
-        description: desc.trim(),
-        amount: num,
-        type: "expense",
-        category,
-        account_id: accountId || null,
-      });
+      const res = await addTransaction(payload);
       if (res.error) {
         setError(res.error);
+        setFlash(null);
+        // Restore the fields so the user can retry without retyping.
+        setDesc(payload.description);
+        setAmt(String(payload.amount));
+        setDate(payload.date);
+        setCategory(payload.category);
+        setAccountId(payload.account_id ?? "");
         return;
       }
-      setDesc("");
-      setAmt("");
-      setDate(today());
+      // Fade flash after a beat
+      setTimeout(() => setFlash(null), 1800);
     });
   }
 
@@ -159,16 +178,28 @@ export function QuickAddBar({ open, onClose, accounts }: Props) {
         </select>
         <button
           onClick={handleSave}
-          disabled={pending}
           className="btn-primary shrink-0"
-          style={{ padding: "9px 18px", opacity: pending ? 0.5 : 1 }}
+          style={{ padding: "9px 18px" }}
         >
-          {pending ? "Saving…" : "Save"}
+          Save
         </button>
       </div>
       {error && (
         <p className="text-xs mt-2" style={{ color: "var(--over)" }}>
           {error} required
+        </p>
+      )}
+      {flash && !error && (
+        <p
+          className="text-xs mt-2"
+          style={{
+            color: "var(--accent)",
+            opacity: pending ? 0.7 : 1,
+            transition: "opacity 0.3s",
+          }}
+        >
+          ✓ {flash}
+          {pending && <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>syncing…</span>}
         </p>
       )}
     </div>

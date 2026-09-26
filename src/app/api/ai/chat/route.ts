@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     return new Response("Server missing ANTHROPIC_API_KEY", { status: 500 });
   }
 
-  const systemPrompt = await buildSystemPrompt(body.page);
+  const systemPrompt = await buildSystemPrompt(body.page, user.id);
   const anthropic = new Anthropic({ apiKey });
 
   const stream = new ReadableStream({

@@ -63,6 +63,30 @@ export function ReviewClient({
           </div>
           <h1 className="text-2xl font-bold page-title">Review</h1>
         </div>
+        <div
+          className="flex items-center gap-1 rounded-lg p-1"
+          style={{ background: "var(--hover-bg)" }}
+        >
+          <button
+            style={{
+              padding: "5px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              cursor: "pointer", background: "var(--bg-card-solid)", color: "var(--text-primary)",
+              border: "none",
+            }}
+          >
+            Month
+          </button>
+          <button
+            onClick={() => router.push(`/review?year=${ym.slice(0, 4)}`)}
+            style={{
+              padding: "5px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              cursor: "pointer", background: "transparent", color: "var(--text-secondary)",
+              border: "none",
+            }}
+          >
+            Year
+          </button>
+        </div>
       </div>
 
       {/* Summary strip: Income · Total Spent · Saved · Budget Used */}

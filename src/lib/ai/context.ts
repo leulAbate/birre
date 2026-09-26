@@ -19,6 +19,13 @@ import type { Budget, Recurring, Transaction } from "@/lib/types";
 
 export type PageId = "dashboard" | "transactions" | "review" | "plans" | "tax";
 
+// In-memory cache: rebuilding the page context hits Supabase several times
+// per request, and during a chat the same context stays valid across
+// consecutive messages. 30s TTL is short enough that a transaction added
+// mid-conversation flushes in on the next message.
+const CACHE_TTL_MS = 30_000;
+const contextCache = new Map<string, { data: string; expiresAt: number }>();
+
 const BASE_INSTRUCTIONS = `
 You are Birr'e AI, a personal finance assistant embedded in the user's own finance app.
 You have access to the user's real numbers, included in the system prompt below.
@@ -32,9 +39,30 @@ Rules:
 - The user is looking at the CURRENT PAGE section below; assume they can see those numbers already.
 `;
 
-export async function buildSystemPrompt(page: PageId): Promise<string> {
-  const data = await PAGE_BUILDERS[page]();
+export async function buildSystemPrompt(page: PageId, userId: string): Promise<string> {
+  const key = `${userId}:${page}`;
+  const now = Date.now();
+  const cached = contextCache.get(key);
+  let data: string;
+  if (cached && cached.expiresAt > now) {
+    data = cached.data;
+  } else {
+    data = await PAGE_BUILDERS[page]();
+    contextCache.set(key, { data, expiresAt: now + CACHE_TTL_MS });
+  }
   return `${BASE_INSTRUCTIONS}\n\nCURRENT PAGE: ${page}\n\nPAGE DATA:\n${data}`;
+}
+
+/** Called after mutations that make cached context stale (transaction save,
+ *  budget change, etc.) so the next AI call rebuilds. */
+export function invalidateAiContext(userId?: string) {
+  if (!userId) {
+    contextCache.clear();
+    return;
+  }
+  for (const k of contextCache.keys()) {
+    if (k.startsWith(`${userId}:`)) contextCache.delete(k);
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
