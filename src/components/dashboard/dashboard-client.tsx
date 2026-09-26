@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Account, Budget } from "@/lib/types";
+import { CATEGORIES } from "@/lib/types";
 import type { BudgetProgress, MonthSummary } from "@/lib/calculations/summary";
 import type { GoalProgress } from "@/lib/calculations/goals";
 import { fmtCurrency } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { AccountsModal } from "./accounts-modal";
-import { BudgetsModal } from "./budgets-modal";
 import { LoansModal } from "./loans-modal";
+import { FreeToSpendModal } from "./free-to-spend-modal";
+import { SpentModal } from "./spent-modal";
 import { CategoryBreakdown } from "./category-breakdown";
 import { SpendingVisual } from "./spending-visual";
 import { AiPulse } from "./ai-pulse";
@@ -41,16 +43,37 @@ export function DashboardClient({
 }: Props) {
   const router = useRouter();
   const [openAccounts, setOpenAccounts] = useState(false);
-  const [openBudgets, setOpenBudgets] = useState(false);
+  const [openFreeToSpend, setOpenFreeToSpend] = useState(false);
+  const [openSpent, setOpenSpent] = useState(false);
   const [openLoans, setOpenLoans] = useState(false);
 
   const netWorth = accounts.reduce((sum, a) => {
     const sign = a.type === "credit" ? -1 : 1;
     return sum + sign * Number(a.balance);
   }, 0);
+  const netWorthPositive = accounts
+    .filter((a) => a.type !== "credit")
+    .reduce((s, a) => s + Number(a.balance), 0);
+  const netWorthFill = netWorthPositive > 0
+    ? Math.min(100, Math.max(0, (netWorth / netWorthPositive) * 100))
+    : 0;
 
   const loanAccounts = accounts.filter((a) => a.type === "credit");
   const loanBalance = loanAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
+  const loanFill = netWorthPositive > 0
+    ? Math.min(100, (loanBalance / netWorthPositive) * 100)
+    : 0;
+
+  const wantsSet = new Set<string>(CATEGORIES.wants);
+  const wantsBudgets = budgetProgress.filter((b) => wantsSet.has(b.category));
+  const wantsTotal = wantsBudgets.reduce((s, b) => s + b.budgeted, 0);
+  const wantsSpent = wantsBudgets.reduce((s, b) => s + b.spent, 0);
+  const freeToSpend = Math.max(0, wantsTotal - wantsSpent);
+  const wantsPercent = wantsTotal > 0 ? (wantsSpent / wantsTotal) * 100 : 0;
+
+  const spentPercent = summary.income > 0
+    ? Math.min(100, (summary.expense / summary.income) * 100)
+    : 0;
 
   function shiftMonth(direction: number) {
     const [y, m] = ym.split("-").map(Number);
@@ -83,29 +106,53 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Top stats — clickable to open detail modals */}
+      {/* Top stats — all clickable to open detail modals */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-          label="Net Worth"
-          value={fmtCurrency(netWorth)}
+          label="Free to Spend"
+          value={fmtCurrency(freeToSpend)}
           accent
-          sub={`${accounts.length} account${accounts.length === 1 ? "" : "s"}`}
-          onClick={() => setOpenAccounts(true)}
+          sub={wantsTotal > 0 ? `of ${fmtCurrency(wantsTotal)} wants budget` : "No wants budget set"}
+          progress={wantsPercent}
+          progressColor={
+            wantsPercent > 100 ? "var(--over)" :
+            wantsPercent >= 80 ? "var(--warn)" :
+            "var(--accent)"
+          }
+          onClick={() => setOpenFreeToSpend(true)}
         />
-        <StatCard label="Income" value={fmtCurrency(summary.income, { sign: true })} color="var(--accent)" />
         <StatCard
-          label="Spent"
-          value={fmtCurrency(-summary.expense)}
-          color="var(--over)"
-          sub={budgets.length > 0 ? `${budgetProgress.filter((b) => b.percent > 100).length} over budget` : "No budgets set"}
-          onClick={() => setOpenBudgets(true)}
+          label="Total Spent"
+          value={fmtCurrency(summary.expense)}
+          color="var(--text-primary)"
+          sub={summary.income > 0 ? `${spentPercent.toFixed(0)}% of income` : "No income this month"}
+          progress={spentPercent}
+          progressColor={
+            spentPercent > 100 ? "var(--over)" :
+            spentPercent >= 80 ? "var(--warn)" :
+            "var(--accent)"
+          }
+          onClick={() => setOpenSpent(true)}
         />
         <StatCard
           label="Loan Balance"
           value={fmtCurrency(loanBalance)}
-          color={loanBalance > 0 ? "var(--violet)" : "var(--text-muted)"}
-          sub={loanAccounts.length === 0 ? "No loans added" : `${loanAccounts.length} loan${loanAccounts.length === 1 ? "" : "s"}`}
+          color={loanBalance > 0 ? "var(--text-primary)" : "var(--text-muted)"}
+          sub={loanAccounts.length === 0
+            ? "No loans added"
+            : `${loanAccounts.length} loan${loanAccounts.length === 1 ? "" : "s"}`}
+          progress={loanBalance > 0 ? loanFill : 0}
+          progressColor="var(--violet)"
           onClick={() => setOpenLoans(true)}
+        />
+        <StatCard
+          label="Net Worth"
+          value={fmtCurrency(netWorth)}
+          accent
+          sub={`across ${accounts.length} account${accounts.length === 1 ? "" : "s"}`}
+          progress={netWorthFill}
+          progressColor="var(--accent)"
+          onClick={() => setOpenAccounts(true)}
         />
       </div>
 
@@ -131,7 +178,20 @@ export function DashboardClient({
       <AiPulse insights={insights} monthLabel={monthLabel} />
 
       <AccountsModal open={openAccounts} onClose={() => setOpenAccounts(false)} accounts={accounts} />
-      <BudgetsModal open={openBudgets} onClose={() => setOpenBudgets(false)} budgetProgress={budgetProgress} />
+      <FreeToSpendModal
+        open={openFreeToSpend}
+        onClose={() => setOpenFreeToSpend(false)}
+        wantsBudgets={wantsBudgets}
+        wantsTotal={wantsTotal}
+        wantsSpent={wantsSpent}
+      />
+      <SpentModal
+        open={openSpent}
+        onClose={() => setOpenSpent(false)}
+        totalExpense={summary.expense}
+        income={summary.income}
+        byCategory={summary.byCategory}
+      />
       <LoansModal
         open={openLoans}
         onClose={() => setOpenLoans(false)}
@@ -151,6 +211,8 @@ function StatCard({
   color,
   accent,
   sub,
+  progress,
+  progressColor,
   onClick,
 }: {
   label: string;
@@ -158,6 +220,8 @@ function StatCard({
   color?: string;
   accent?: boolean;
   sub?: string;
+  progress?: number;
+  progressColor?: string;
   onClick?: () => void;
 }) {
   return (
@@ -175,13 +239,32 @@ function StatCard({
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <p className="section-label mb-1">{label}</p>
-      <p className={"text-2xl font-bold " + (accent ? "accent-num" : "")} style={{ color: color ?? "var(--text-primary)" }}>
+      <p className="section-label mb-2">{label}</p>
+      <p
+        className={"text-3xl font-bold " + (accent ? "accent-num" : "")}
+        style={{ color: color ?? "var(--text-primary)" }}
+      >
         <G>{value}</G>
       </p>
       {sub && (
-        <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+        <p className="text-xs mt-1 mb-3" style={{ color: "var(--text-muted)" }}>
           {sub}
+        </p>
+      )}
+      {progress !== undefined && (
+        <div className="progress-track">
+          <div
+            className="progress-fill"
+            style={{
+              width: `${Math.min(100, Math.max(0, progress))}%`,
+              background: progressColor ?? "var(--accent)",
+            }}
+          />
+        </div>
+      )}
+      {onClick && (
+        <p className="mt-2" style={{ fontSize: 10, color: "var(--text-muted)" }}>
+          Click to expand ↗
         </p>
       )}
     </div>

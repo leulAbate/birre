@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { autoLogin } from "@/server/actions/auto-login";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [autoTried, setAutoTried] = useState(false);
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (attempted.current) return;
+    attempted.current = true;
+    (async () => {
+      const res = await autoLogin();
+      if ("ok" in res) {
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+      setAutoTried(true);
+    })();
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +45,14 @@ export default function LoginPage() {
 
     router.push("/dashboard");
     router.refresh();
+  }
+
+  if (!autoTried) {
+    return (
+      <div className="glass rounded-3xl p-8 text-center">
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Signing you in…</p>
+      </div>
+    );
   }
 
   return (
