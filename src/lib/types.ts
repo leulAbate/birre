@@ -67,6 +67,7 @@ export interface Budget {
   user_id: string;
   category: string;
   amount: number;
+  pct: number | null;  // when set, amount is dollar equivalent of pct * monthly income
 }
 
 export interface Recurring {

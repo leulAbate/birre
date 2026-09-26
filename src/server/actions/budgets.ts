@@ -3,12 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function upsertBudget(category: string, amount: number) {
+interface UpsertOpts {
+  amount: number;      // dollar amount (computed on client if pct-based)
+  pct?: number | null; // if percent-based
+}
+
+export async function upsertBudget(category: string, opts: UpsertOpts | number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  // Try to update first; if zero rows, insert.
+  // Backwards-compat: allow plain number in place of the opts object.
+  const { amount, pct } = typeof opts === "number" ? { amount: opts, pct: null } : opts;
+
   const { data: existing } = await supabase
     .from("budgets")
     .select("id")
@@ -18,13 +25,13 @@ export async function upsertBudget(category: string, amount: number) {
   if (existing) {
     const { error } = await supabase
       .from("budgets")
-      .update({ amount })
+      .update({ amount, pct: pct ?? null })
       .eq("id", existing.id);
     if (error) return { error: error.message };
   } else {
     const { error } = await supabase
       .from("budgets")
-      .insert({ user_id: user.id, category, amount });
+      .insert({ user_id: user.id, category, amount, pct: pct ?? null });
     if (error) return { error: error.message };
   }
 

@@ -18,6 +18,7 @@ interface ParsedRow {
   amount: string;
   category: string;
   type: TxType;
+  account_id: string; // per-row override; empty = use bulk default
 }
 
 export function CsvImportModal({ open, onClose, accounts }: Props) {
@@ -76,7 +77,7 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
         amount: Math.abs(amt),
         type: r.type,
         category: r.category,
-        account_id: accountId || null,
+        account_id: r.account_id || accountId || null,
       });
     }
     if (valid.length === 0) {
@@ -158,12 +159,21 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
           <>
             <div className="mb-4 flex items-center gap-3">
               <label className="modal-label" style={{ marginBottom: 0 }}>
-                Import to account:
+                Default account:
               </label>
               <select className="modal-select" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ flex: 1 }}>
-                <option value="">None / mixed</option>
+                <option value="">None</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
+              <button
+                type="button"
+                onClick={() => setRows((prev) => prev.map((r) => ({ ...r, account_id: accountId })))}
+                className="btn-ghost text-xs"
+                style={{ padding: "5px 12px", whiteSpace: "nowrap" }}
+                title="Apply this account to every row (overwrites per-row picks)"
+              >
+                Apply to all
+              </button>
             </div>
 
             {rows.filter((r) => !r.date).length > 0 && (
@@ -188,6 +198,7 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
                     <Th>Amount</Th>
                     <Th>Category</Th>
                     <Th>Type</Th>
+                    <Th>Account</Th>
                     <Th />
                   </tr>
                 </thead>
@@ -208,6 +219,14 @@ export function CsvImportModal({ open, onClose, accounts }: Props) {
                           <option value="expense">Expense</option>
                           <option value="income">Income</option>
                           <option value="transfer">Transfer</option>
+                        </CompactSelect>
+                      </Td>
+                      <Td>
+                        <CompactSelect value={row.account_id} onChange={(v) => update(i, "account_id", v)}>
+                          <option value="">{accountId ? "Use default" : "None"}</option>
+                          {accounts.map((a) => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
                         </CompactSelect>
                       </Td>
                       <Td>
@@ -289,6 +308,7 @@ function parseCsv(text: string): ParsedRow[] {
       amount: amount.toFixed(2),
       category,
       type,
+      account_id: "",
     };
     // Keep rows with unparseable dates so the user can fix them in the preview,
     // instead of silently dropping them.

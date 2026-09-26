@@ -31,6 +31,7 @@ interface Props {
   trend: TrendPoint[];
   insights: PulseInsight[];
   activePlans: GoalProgress[];
+  monthlyIncome: number;
 }
 
 export function DashboardClient({
@@ -42,6 +43,7 @@ export function DashboardClient({
   trend,
   insights,
   activePlans,
+  monthlyIncome,
 }: Props) {
   const router = useRouter();
   const [openAccounts, setOpenAccounts] = useState(false);
@@ -194,7 +196,13 @@ export function DashboardClient({
       <AiPulse insights={insights} monthLabel={monthLabel} />
 
       <AccountsModal open={openAccounts} onClose={() => setOpenAccounts(false)} accounts={accounts} />
-      <BudgetsModal open={openBudgets} onClose={() => setOpenBudgets(false)} budgetProgress={budgetProgress} />
+      <BudgetsModal
+        open={openBudgets}
+        onClose={() => setOpenBudgets(false)}
+        budgetProgress={budgetProgress}
+        budgets={budgets}
+        monthlyIncome={monthlyIncome}
+      />
       <FreeToSpendModal
         open={openFreeToSpend}
         onClose={() => setOpenFreeToSpend(false)}

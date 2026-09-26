@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAccounts, getGoals, getTransactions, monthRange } from "@/lib/data";
+import { getAccounts, getGoals, getPaystubs, getProfile, getTransactions, monthRange } from "@/lib/data";
 import { computeBudgetProgress, computeMonthSummary } from "@/lib/calculations/summary";
 import { computeGoalProgress } from "@/lib/calculations/goals";
 import { computePulseInsights } from "@/lib/calculations/pulse";
+import { projectYTD } from "@/lib/calculations/paystubs";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import type { Budget } from "@/lib/types";
 
@@ -44,13 +45,15 @@ export default async function DashboardPage({ searchParams }: Props) {
   const { start, end } = monthRange(y, m - 1);
 
   const supabase = await createClient();
-  const [accounts, monthTransactions, allTransactions, goals, budgetsRes, trend] = await Promise.all([
+  const [accounts, monthTransactions, allTransactions, goals, budgetsRes, trend, profile, paystubs] = await Promise.all([
     getAccounts(),
     getTransactions({ monthStart: start, monthEnd: end }),
     getTransactions(),
     getGoals(),
     supabase.from("budgets").select("*"),
     loadSpendingTrend(6),
+    getProfile(),
+    getPaystubs({ yearStart: `${now.getFullYear()}-01-01` }),
   ]);
 
   const budgets = (budgetsRes.data ?? []) as Budget[];
@@ -62,6 +65,16 @@ export default async function DashboardPage({ searchParams }: Props) {
     .filter((g) => g.status === "active")
     .map((g) => computeGoalProgress(g, allTransactions));
 
+  // Monthly income baseline for % budgeting. Prefer paystub projection
+  // (accurate net → net take-home is what shows up in the budget); fall
+  // back to profile.annual_salary / 12 (gross).
+  const proj = projectYTD(paystubs, profile?.pay_frequency ?? "biweekly");
+  const monthlyIncome = proj
+    ? proj.annual.netPay / 12
+    : profile?.annual_salary
+      ? Number(profile.annual_salary) / 12
+      : 0;
+
   return (
     <DashboardClient
       ym={ym}
@@ -72,6 +85,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       trend={trend}
       insights={insights}
       activePlans={activePlans}
+      monthlyIncome={monthlyIncome}
     />
   );
 }
