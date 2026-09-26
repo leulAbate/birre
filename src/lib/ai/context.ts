@@ -3,33 +3,123 @@
  * is currently on. Each builder pulls the live numbers they need from Supabase
  * and serializes them into the prompt so Claude answers grounded in real data.
  *
+ * The AI is meant to see everything the user sees on the page — not just what
+ * they type — so builders serialize the same shapes the page renders.
+ *
  * Add a new page: add a key to PageId, implement a builder, register it below.
  */
 import { createClient } from "@/lib/supabase/server";
 import { getAccounts, getGoals, getPaystubs, getProfile, getTransactions, monthRange } from "@/lib/data";
 import { computeBudgetProgress, computeMonthSummary, topExpenses } from "@/lib/calculations/summary";
 import { computeGoalProgress } from "@/lib/calculations/goals";
-import { computePulseScore } from "@/lib/calculations/pulse";
+import { computePulseScore, computePulseInsights } from "@/lib/calculations/pulse";
 import { projectYTD } from "@/lib/calculations/paystubs";
 import { fmtCurrency } from "@/lib/utils";
-import type { Budget } from "@/lib/types";
+import type { Budget, Recurring, Transaction } from "@/lib/types";
 
 export type PageId = "dashboard" | "transactions" | "review" | "plans" | "tax";
 
 const BASE_INSTRUCTIONS = `
 You are Birr'e AI, a personal finance assistant embedded in the user's own finance app.
 You have access to the user's real numbers, included in the system prompt below.
+
 Rules:
-- Be specific. Cite actual numbers from the data. Don't invent values.
+- Be specific. Cite actual numbers from the data. Never invent values.
 - Be direct and useful. Skip pleasantries.
-- Don't repeat the data back — answer the question, then refer to numbers as evidence.
-- If the user asks something the data doesn't contain, say so briefly.
-- Keep responses to 2–4 short paragraphs unless the user asks for more.
+- Don't just repeat the data back — answer the question, then reference numbers as evidence.
+- If the user asks something the data doesn't contain, say so briefly (in one line).
+- Keep responses to 2–4 short paragraphs unless the user explicitly asks for more.
+- The user is looking at the CURRENT PAGE section below; assume they can see those numbers already.
 `;
 
 export async function buildSystemPrompt(page: PageId): Promise<string> {
   const data = await PAGE_BUILDERS[page]();
-  return `${BASE_INSTRUCTIONS}\n\nCURRENT PAGE: ${page}\n\nUSER DATA:\n${data}`;
+  return `${BASE_INSTRUCTIONS}\n\nCURRENT PAGE: ${page}\n\nPAGE DATA:\n${data}`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Shared helpers
+// ──────────────────────────────────────────────────────────────
+
+async function loadTrend(monthsBack: number, includeByCategory = true) {
+  const supabase = await createClient();
+  const now = new Date();
+  const out: Array<{
+    label: string;
+    ym: string;
+    income: number;
+    expense: number;
+    saved: number;
+    savingsRate: number;
+    byCategory?: Record<string, number>;
+  }> = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const { start, end } = monthRange(d.getFullYear(), d.getMonth());
+    const { data } = await supabase
+      .from("transactions")
+      .select("amount, type, category")
+      .gte("date", start)
+      .lte("date", end);
+    const rows = (data ?? []) as Array<Pick<Transaction, "amount" | "type" | "category">>;
+    const summary = computeMonthSummary(
+      rows.map((r) => ({
+        ...r,
+        id: "", user_id: "", account_id: null, to_account_id: null,
+        goal_id: null, paystub_id: null, date: "", description: "",
+        note: null, created_at: "",
+      })),
+    );
+    const savingsRate = summary.income > 0 ? (summary.saved / summary.income) * 100 : 0;
+    out.push({
+      label: d.toLocaleDateString(undefined, { month: "short" }),
+      ym: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      income: summary.income,
+      expense: summary.expense,
+      saved: summary.saved,
+      savingsRate,
+      ...(includeByCategory ? { byCategory: Object.fromEntries(summary.byCategory) } : {}),
+    });
+  }
+  return out;
+}
+
+function accountLines(accounts: Awaited<ReturnType<typeof getAccounts>>) {
+  if (accounts.length === 0) return "  (none)";
+  return accounts
+    .map((a) => `  - ${a.name} (${a.type}): ${fmtCurrency(Number(a.balance))}`)
+    .join("\n");
+}
+
+function budgetLines(bp: ReturnType<typeof computeBudgetProgress>) {
+  if (bp.length === 0) return "  (none)";
+  return bp
+    .map(
+      (b) =>
+        `  - ${b.category}: ${fmtCurrency(b.spent)} / ${fmtCurrency(b.budgeted)} (${b.percent.toFixed(0)}%${
+          b.percent > 100 ? ", OVER" : ""
+        })`,
+    )
+    .join("\n");
+}
+
+function categoryLines(byCategory: Map<string, number>) {
+  const entries = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return "  (none)";
+  return entries.map(([cat, amt]) => `  - ${cat}: ${fmtCurrency(amt)}`).join("\n");
+}
+
+function trendLines(
+  trend: Array<{ label: string; ym: string; income: number; expense: number; saved: number; savingsRate: number }>,
+) {
+  return trend
+    .map(
+      (t) =>
+        `  - ${t.label} ${t.ym.slice(0, 4)}: income ${fmtCurrency(t.income)}, spent ${fmtCurrency(
+          t.expense,
+        )}, saved ${fmtCurrency(t.saved)} (${t.savingsRate.toFixed(1)}%)`,
+    )
+    .join("\n");
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -38,71 +128,122 @@ export async function buildSystemPrompt(page: PageId): Promise<string> {
 
 async function dashboardContext(): Promise<string> {
   const now = new Date();
-  const { start, end } = monthRange(now.getFullYear(), now.getMonth());
+  const { start } = monthRange(now.getFullYear(), now.getMonth());
   const supabase = await createClient();
-  const [accounts, txs, budgetsRes] = await Promise.all([
+  const [accounts, txs, allTxs, goals, budgetsRes, recurringRes, trend] = await Promise.all([
     getAccounts(),
-    getTransactions({ monthStart: start, monthEnd: end }),
+    getTransactions({ monthStart: start, monthEnd: monthRange(now.getFullYear(), now.getMonth()).end }),
+    getTransactions(),
+    getGoals(),
     supabase.from("budgets").select("*"),
+    supabase.from("recurring").select("*").eq("active", true),
+    loadTrend(6, false),
   ]);
   const summary = computeMonthSummary(txs);
   const budgets = (budgetsRes.data ?? []) as Budget[];
+  const recurring = (recurringRes.data ?? []) as Recurring[];
   const budgetProgress = computeBudgetProgress(budgets, summary.byCategory);
   const top = topExpenses(txs, 5);
+  const insights = computePulseInsights(summary, budgetProgress, trend);
+  const activeGoals = goals
+    .filter((g) => g.status === "active")
+    .map((g) => computeGoalProgress(g, allTxs));
 
-  const netWorth = accounts.reduce((s, a) => s + (a.type === "credit" ? -1 : 1) * Number(a.balance), 0);
-  const accountLines = accounts.length
-    ? accounts.map((a) => `  - ${a.name} (${a.type}): ${fmtCurrency(Number(a.balance))}`).join("\n")
-    : "  (none)";
-  const budgetLines = budgetProgress.length
-    ? budgetProgress
-        .map((b) => `  - ${b.category}: ${fmtCurrency(b.spent)} / ${fmtCurrency(b.budgeted)} (${b.percent.toFixed(0)}%)`)
-        .join("\n")
-    : "  (none)";
-  const topLines = top.length
-    ? top.map((t) => `  - ${t.date} ${t.description} (${t.category}): ${fmtCurrency(Number(t.amount))}`).join("\n")
-    : "  (none)";
+  const netWorth = accounts.reduce(
+    (s, a) => s + (a.type === "credit" ? -1 : 1) * Number(a.balance),
+    0,
+  );
+  const loanBalance = accounts
+    .filter((a) => a.type === "credit")
+    .reduce((s, a) => s + Number(a.balance), 0);
 
   return `
 CURRENT MONTH: ${start.slice(0, 7)}
-Net worth: ${fmtCurrency(netWorth)}
+
+TOP STAT CARDS:
+  Free to Spend: computed from wants budget - wants spent
+  Total Spent: ${fmtCurrency(summary.expense)} (${summary.income > 0 ? ((summary.expense / summary.income) * 100).toFixed(0) : 0}% of income)
+  Loan Balance: ${fmtCurrency(loanBalance)}
+  Net Worth: ${fmtCurrency(netWorth)} across ${accounts.length} accounts
+
 Income this month: ${fmtCurrency(summary.income)}
-Expenses this month: ${fmtCurrency(summary.expense)}
 Saved this month: ${fmtCurrency(summary.saved)}
 Net this month: ${fmtCurrency(summary.net)}
 
 Accounts:
-${accountLines}
+${accountLines(accounts)}
 
-Budgets:
-${budgetLines}
+Budgets (Category Breakdown):
+${budgetLines(budgetProgress)}
 
-Top expenses:
-${topLines}
+Category totals this month:
+${categoryLines(summary.byCategory)}
+
+Top expenses this month:
+${top.length
+  ? top.map((t) => `  - ${t.date} ${t.description} (${t.category}): ${fmtCurrency(Number(t.amount))}`).join("\n")
+  : "  (none)"}
+
+Recurring subscriptions:
+${recurring.length
+  ? recurring.map((r) => `  - ${r.name} (${r.category}, ${r.frequency}): ${fmtCurrency(Number(r.amount))}`).join("\n")
+  : "  (none)"}
+
+Active plans/goals (${activeGoals.length}):
+${activeGoals.length
+  ? activeGoals
+      .map((p) => `  - ${p.goal.icon} ${p.goal.name}: ${fmtCurrency(p.saved)}/${fmtCurrency(Number(p.goal.target_amount))} (${p.percent.toFixed(0)}%, ${p.onTrack})`)
+      .join("\n")
+  : "  (none)"}
+
+Spending trend (last 6 months):
+${trendLines(trend)}
+
+Pulse insight tiles currently shown:
+${insights.length
+  ? insights.map((i) => `  - [${i.tone}] ${i.title} — ${i.detail}`).join("\n")
+  : "  (none)"}
 `.trim();
 }
 
 async function transactionsContext(): Promise<string> {
   const now = new Date();
   const { start, end } = monthRange(now.getFullYear(), now.getMonth());
-  const txs = await getTransactions({ monthStart: start, monthEnd: end });
+  const supabase = await createClient();
+  const [txs, accounts, budgetsRes] = await Promise.all([
+    getTransactions({ monthStart: start, monthEnd: end }),
+    getAccounts(),
+    supabase.from("budgets").select("*"),
+  ]);
   const summary = computeMonthSummary(txs);
+  const budgets = (budgetsRes.data ?? []) as Budget[];
+  const budgetProgress = computeBudgetProgress(budgets, summary.byCategory);
+  const accountById = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
+
   const lines = txs
-    .slice(0, 30)
-    .map((t) => `  - ${t.date} ${t.description} (${t.category}, ${t.type}): ${fmtCurrency(Number(t.amount))}`)
+    .slice(0, 40)
+    .map((t) => {
+      const acc = t.account_id ? accountById[t.account_id] : "";
+      return `  - ${t.date} ${t.description} (${t.category}, ${t.type}${acc ? `, ${acc}` : ""}): ${fmtCurrency(Number(t.amount))}`;
+    })
     .join("\n");
+
   return `
 CURRENT MONTH: ${start.slice(0, 7)}
 Total transactions: ${txs.length}
 Income: ${fmtCurrency(summary.income)} · Expenses: ${fmtCurrency(summary.expense)} · Saved: ${fmtCurrency(summary.saved)}
 
-Recent transactions (up to 30):
+Transactions (up to 40, newest first):
 ${lines || "  (none)"}
 
-Category totals:
-${[...summary.byCategory.entries()]
-  .map(([cat, amt]) => `  - ${cat}: ${fmtCurrency(amt)}`)
-  .join("\n") || "  (none)"}
+Category totals this month:
+${categoryLines(summary.byCategory)}
+
+Budgets (Category view shows these):
+${budgetLines(budgetProgress)}
+
+Accounts:
+${accountLines(accounts)}
 `.trim();
 }
 
@@ -110,46 +251,110 @@ async function reviewContext(): Promise<string> {
   const now = new Date();
   const { start, end } = monthRange(now.getFullYear(), now.getMonth());
   const supabase = await createClient();
-  const [txs, budgetsRes] = await Promise.all([
+  const [txs, budgetsRes, trend] = await Promise.all([
     getTransactions({ monthStart: start, monthEnd: end }),
     supabase.from("budgets").select("*"),
+    loadTrend(4, true),
   ]);
   const summary = computeMonthSummary(txs);
-  const budgetProgress = computeBudgetProgress((budgetsRes.data ?? []) as Budget[], summary.byCategory);
+  const budgets = (budgetsRes.data ?? []) as Budget[];
+  const budgetProgress = computeBudgetProgress(budgets, summary.byCategory);
   const pulse = computePulseScore(summary, budgetProgress);
+  const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
+  const budgetUsedPct = totalBudget > 0 ? (summary.expense / totalBudget) * 100 : 0;
+
+  // MoM diff for last vs prev
+  const prev = trend[trend.length - 2];
+  const cur = trend[trend.length - 1];
+  let momLines = "  (need at least 2 months of data)";
+  if (prev && cur) {
+    const cats = new Set<string>([
+      ...Object.keys(prev.byCategory ?? {}),
+      ...Object.keys(cur.byCategory ?? {}),
+    ]);
+    const diffs = Array.from(cats)
+      .map((cat) => ({
+        cat,
+        cur: cur.byCategory?.[cat] ?? 0,
+        prev: prev.byCategory?.[cat] ?? 0,
+      }))
+      .filter((r) => r.cur > 0 || r.prev > 0)
+      .map((r) => ({ ...r, diff: r.cur - r.prev }))
+      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+      .slice(0, 6);
+    momLines = diffs
+      .map((r) => `  - ${r.cat}: ${fmtCurrency(r.cur)} vs ${fmtCurrency(r.prev)} last month (${r.diff >= 0 ? "+" : ""}${fmtCurrency(r.diff)})`)
+      .join("\n") || "  (no significant moves)";
+  }
+
+  // Category sparkline data
+  const topCats = cur?.byCategory
+    ? Object.entries(cur.byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c)
+    : [];
+  const sparkLines = topCats
+    .map((cat) => {
+      const seq = trend.map((t) => fmtCurrency(t.byCategory?.[cat] ?? 0)).join(" → ");
+      return `  - ${cat}: ${seq}`;
+    })
+    .join("\n");
 
   return `
 CURRENT MONTH: ${start.slice(0, 7)}
+
+Summary strip:
+  Income: ${fmtCurrency(summary.income)}
+  Total Spent: ${fmtCurrency(summary.expense)}
+  Saved: ${fmtCurrency(summary.saved)}
+  Budget Used: ${totalBudget > 0 ? budgetUsedPct.toFixed(0) + "%" : "—"}
+
 Pulse score: ${pulse.total}/100 (Grade ${pulse.grade})
-  - Savings rate: ${pulse.breakdown.savingsRate}/40 (${pulse.savingsRate.toFixed(0)}% saved)
+  - Savings rate: ${pulse.breakdown.savingsRate}/40 (${pulse.savingsRate.toFixed(1)}% saved)
   - Cash flow: ${pulse.breakdown.cashFlow}/20
-  - Budget adherence: ${pulse.breakdown.budgetAdherence}/30 (${budgetProgress.filter((b) => b.percent > 100).length} over budget)
+  - Budget adherence: ${pulse.breakdown.budgetAdherence}/30 (${budgetProgress.filter((b) => b.percent > 100).length} categories over budget)
   - Diversity: ${pulse.breakdown.diversityBonus}/10
 
-Income: ${fmtCurrency(summary.income)} · Spent: ${fmtCurrency(summary.expense)} · Saved: ${fmtCurrency(summary.saved)}
+Goal vs Actual (budgets):
+${budgetLines(budgetProgress)}
 
-Budgets:
-${budgetProgress
-  .map((b) => `  - ${b.category}: ${fmtCurrency(b.spent)} / ${fmtCurrency(b.budgeted)} (${b.percent.toFixed(0)}%)`)
-  .join("\n") || "  (none)"}
+${trend.length}-month trend (Total Spending Last N Months):
+${trendLines(trend)}
+
+Category sparklines (last ${trend.length} months, top categories):
+${sparkLines || "  (no data)"}
+
+Savings Rate Trend:
+${trend.map((t) => `  - ${t.label} ${t.ym.slice(0, 4)}: ${t.savingsRate.toFixed(1)}%`).join("\n")}
+
+Month-over-month diff (${prev?.label ?? "prev"} → ${cur?.label ?? "cur"}):
+${momLines}
 `.trim();
 }
 
 async function plansContext(): Promise<string> {
   const [goals, allTxs] = await Promise.all([getGoals(), getTransactions()]);
   const progress = goals.map((g) => computeGoalProgress(g, allTxs));
+  const active = progress.filter((p) => p.goal.status === "active");
+  const wishlist = progress.filter((p) => p.goal.status === "wishlist");
 
-  return `
-${progress.length} goal${progress.length === 1 ? "" : "s"}:
-${progress
-  .map((p) => {
+  const summarize = (p: (typeof progress)[number]) => {
     const target = fmtCurrency(Number(p.goal.target_amount));
     const saved = fmtCurrency(p.saved);
     const monthly = p.monthlyNeeded !== null ? fmtCurrency(p.monthlyNeeded) + "/mo" : "—";
     const date = p.goal.target_date ?? "no deadline";
-    return `  - ${p.goal.icon} ${p.goal.name}: ${saved}/${target} (${p.percent.toFixed(0)}%, ${p.onTrack}, ${monthly} needed, target ${date})`;
-  })
-  .join("\n") || "  (none)"}
+    const contribs = p.contributions.length
+      ? ` [${p.contributions.length} contribution${p.contributions.length === 1 ? "" : "s"}]`
+      : "";
+    return `  - ${p.goal.icon} ${p.goal.name}: ${saved}/${target} (${p.percent.toFixed(0)}%, ${p.onTrack}, ${monthly} needed, target ${date})${contribs}`;
+  };
+
+  return `
+Active Goals (${active.length}):
+${active.length ? active.map(summarize).join("\n") : "  (none)"}
+
+Wishlist (${wishlist.length}):
+${wishlist.length ? wishlist.map(summarize).join("\n") : "  (none)"}
+
+Notes: Wishlist goals have no deadline. Contributions come from transactions tagged with a goal_id.
 `.trim();
 }
 
@@ -161,7 +366,7 @@ async function taxContext(): Promise<string> {
   ]);
 
   const profileLine = profile
-    ? `Filing: ${profile.filing_status} · State: ${profile.state} · Pay: ${profile.pay_frequency}`
+    ? `Filing: ${profile.filing_status} · State: ${profile.state} · Pay: ${profile.pay_frequency} · Retirement contribution: ${profile.retirement_pct}% (${profile.retirement_type})`
     : "Profile not set.";
 
   if (paystubs.length === 0) {
@@ -191,10 +396,15 @@ TEMPLATES ON FILE (${paystubs.length}):
 ${templateLines}
 
 ACTIVE TEMPLATE (${activeTemplate.pay_date}${activeTemplate.employer ? `, ${activeTemplate.employer}` : ""}):
-  Regular pay: ${fmtCurrency(Number(activeTemplate.regular_pay), { decimals: true })}
-  Bonus: ${fmtCurrency(Number(activeTemplate.bonus), { decimals: true })}
-  Federal withheld: ${fmtCurrency(Number(activeTemplate.federal_withheld), { decimals: true })}
-  State withheld: ${fmtCurrency(Number(activeTemplate.state_withheld), { decimals: true })}
+  Regular pay: ${fmtCurrency(Number(activeTemplate.regular_pay))}
+  Bonus: ${fmtCurrency(Number(activeTemplate.bonus))}
+  Medical: ${fmtCurrency(Number(activeTemplate.medical))}
+  Dental: ${fmtCurrency(Number(activeTemplate.dental))}
+  HSA: ${fmtCurrency(Number(activeTemplate.hsa))}
+  401(k) pretax: ${fmtCurrency(Number(activeTemplate.retirement_pretax))}
+  401(k) aftertax (Roth): ${fmtCurrency(Number(activeTemplate.retirement_aftertax))}
+  Federal withheld: ${fmtCurrency(Number(activeTemplate.federal_withheld))}
+  State withheld: ${fmtCurrency(Number(activeTemplate.state_withheld))}
 
 PROJECTED YTD (${periodsCompleted} of ${periodsPerYear} periods completed):
   Gross earnings: ${fmtCurrency(ytd.gross)}

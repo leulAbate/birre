@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       const encoder = new TextEncoder();
       try {
         const claudeStream = await anthropic.messages.stream({
-          model: "claude-sonnet-4-5-20250929",
+          model: "claude-sonnet-4-6",
           max_tokens: 1024,
           system: systemPrompt,
           messages: body.messages.map((m) => ({ role: m.role, content: m.content })),
