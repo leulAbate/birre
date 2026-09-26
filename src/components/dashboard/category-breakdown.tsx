@@ -10,6 +10,7 @@ interface Props {
   saved: number;
   budgets: Budget[];
   monthLabel: string;
+  onManage?: () => void;
 }
 
 type Group = "needs" | "wants" | "savings";
@@ -26,15 +27,26 @@ const GROUP_COLOR: Record<Group, string> = {
   savings: "var(--violet)",
 };
 
-export function CategoryBreakdown({ byCategory, saved, budgets, monthLabel }: Props) {
+export function CategoryBreakdown({ byCategory, saved, budgets, monthLabel, onManage }: Props) {
   const budgetMap = new Map(budgets.map((b) => [b.category, Number(b.amount)]));
 
   return (
     <div className="glass rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          Category Breakdown
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            Category Breakdown
+          </h2>
+          {onManage && (
+            <button
+              onClick={onManage}
+              className="text-xs font-medium"
+              style={{ color: "var(--accent)", cursor: "pointer" }}
+            >
+              Manage Budgets →
+            </button>
+          )}
+        </div>
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
           {monthLabel}
         </span>

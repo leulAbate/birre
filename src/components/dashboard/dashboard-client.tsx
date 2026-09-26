@@ -9,6 +9,7 @@ import type { GoalProgress } from "@/lib/calculations/goals";
 import { fmtCurrency } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
 import { AccountsModal } from "./accounts-modal";
+import { BudgetsModal } from "./budgets-modal";
 import { LoansModal } from "./loans-modal";
 import { FreeToSpendModal } from "./free-to-spend-modal";
 import { SpentModal } from "./spent-modal";
@@ -44,6 +45,7 @@ export function DashboardClient({
 }: Props) {
   const router = useRouter();
   const [openAccounts, setOpenAccounts] = useState(false);
+  const [openBudgets, setOpenBudgets] = useState(false);
   const [openFreeToSpend, setOpenFreeToSpend] = useState(false);
   const [openSpent, setOpenSpent] = useState(false);
   const [openLoans, setOpenLoans] = useState(false);
@@ -176,6 +178,7 @@ export function DashboardClient({
           saved={summary.saved}
           budgets={budgets}
           monthLabel={monthLabel}
+          onManage={() => setOpenBudgets(true)}
         />
         <div className="flex flex-col gap-4">
           <SpendingVisual
@@ -191,6 +194,7 @@ export function DashboardClient({
       <AiPulse insights={insights} monthLabel={monthLabel} />
 
       <AccountsModal open={openAccounts} onClose={() => setOpenAccounts(false)} accounts={accounts} />
+      <BudgetsModal open={openBudgets} onClose={() => setOpenBudgets(false)} budgetProgress={budgetProgress} />
       <FreeToSpendModal
         open={openFreeToSpend}
         onClose={() => setOpenFreeToSpend(false)}
