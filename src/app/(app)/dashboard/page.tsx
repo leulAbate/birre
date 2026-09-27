@@ -65,15 +65,11 @@ export default async function DashboardPage({ searchParams }: Props) {
     .filter((g) => g.status === "active")
     .map((g) => computeGoalProgress(g, allTransactions));
 
-  // Monthly income baseline for % budgeting. Prefer paystub projection
-  // (accurate net → net take-home is what shows up in the budget); fall
-  // back to profile.annual_salary / 12 (gross).
+  // Monthly take-home baseline for % budgeting.
+  // Only paystub projection counts — annual_salary is gross, not take-home.
+  // If no paystubs, % is disabled and the user is prompted to add one.
   const proj = projectYTD(paystubs, profile?.pay_frequency ?? "biweekly");
-  const monthlyIncome = proj
-    ? proj.annual.netPay / 12
-    : profile?.annual_salary
-      ? Number(profile.annual_salary) / 12
-      : 0;
+  const monthlyIncome = proj ? proj.annual.netPay / 12 : 0;
 
   return (
     <DashboardClient

@@ -71,11 +71,20 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
     }
   }
 
-  function handleUpdate(cat: string, newAmount: string) {
+  function handleUpdateAmount(cat: string, newAmount: string) {
     const num = parseFloat(newAmount);
     if (!num || num <= 0) return;
     startTransition(async () => {
       await upsertBudget(cat, { amount: num, pct: null });
+    });
+  }
+
+  function handleUpdatePct(cat: string, newPct: string) {
+    const p = parseFloat(newPct);
+    if (!p || p <= 0 || monthlyIncome <= 0) return;
+    const num = (p / 100) * monthlyIncome;
+    startTransition(async () => {
+      await upsertBudget(cat, { amount: num, pct: p });
     });
   }
 
@@ -117,24 +126,60 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
                       <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{b.category}</p>
                       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         Spent <G>{fmtCurrency(b.spent)}</G>
-                        {isPct && ` · ${raw?.pct}% of income`}
+                        {isPct && (
+                          <>
+                            {" · "}
+                            <G>{fmtCurrency(b.budgeted)}</G> ({raw?.pct}%)
+                          </>
+                        )}
                       </p>
                     </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      defaultValue={b.budgeted}
-                      onBlur={(e) => {
-                        if (parseFloat(e.target.value) !== b.budgeted) {
-                          handleUpdate(b.category, e.target.value);
-                        }
-                      }}
-                      style={{
-                        width: 120, padding: "6px 10px", borderRadius: 8,
-                        border: "1px solid var(--border)", background: "var(--progress-bg)",
-                        color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
-                      }}
-                    />
+                    {isPct ? (
+                      <div style={{ position: "relative", width: 90 }}>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          defaultValue={raw?.pct ?? 0}
+                          onBlur={(e) => {
+                            const p = parseFloat(e.target.value);
+                            if (p !== raw?.pct) {
+                              handleUpdatePct(b.category, e.target.value);
+                            }
+                          }}
+                          style={{
+                            width: "100%", padding: "6px 22px 6px 10px", borderRadius: 8,
+                            border: "1px solid var(--violet-border)", background: "var(--violet-bg)",
+                            color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
+                          }}
+                        />
+                        <span
+                          style={{
+                            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                            color: "var(--violet)", fontSize: 12, fontWeight: 700, pointerEvents: "none",
+                          }}
+                        >
+                          %
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={b.budgeted}
+                        onBlur={(e) => {
+                          if (parseFloat(e.target.value) !== b.budgeted) {
+                            handleUpdateAmount(b.category, e.target.value);
+                          }
+                        }}
+                        style={{
+                          width: 120, padding: "6px 10px", borderRadius: 8,
+                          border: "1px solid var(--border)", background: "var(--progress-bg)",
+                          color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
+                        }}
+                      />
+                    )}
                     <button
                       onClick={() => handleDelete(b.category)}
                       title="Remove"
@@ -203,14 +248,14 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
               <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
                 {monthlyIncome > 0 ? (
                   <>
-                    Monthly income baseline: <G>{fmtCurrency(monthlyIncome)}</G>
+                    Monthly take-home: <G>{fmtCurrency(monthlyIncome)}</G>
                     {previewAmount !== null && (
                       <> · This = <G>{fmtCurrency(previewAmount)}</G></>
                     )}
                   </>
                 ) : (
                   <span style={{ color: "var(--warn)" }}>
-                    Set your annual salary on the Tax page to use %.
+                    Add a paystub on the Tax page to use %.
                   </span>
                 )}
               </p>
