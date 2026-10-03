@@ -113,6 +113,11 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
       }
     }
 
+    // Keep to_account_id for transfers OR for expense + Loan Payments
+    // (where it points at the loan being paid off).
+    const keepToAccount =
+      type === "transfer" ||
+      (type === "expense" && category === "Loan Payments");
     const payload = {
       date,
       description: description.trim() || category,
@@ -120,7 +125,7 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
       type,
       category,
       account_id: accountId || null,
-      to_account_id: type === "transfer" ? toAccountId || null : null,
+      to_account_id: keepToAccount ? toAccountId || null : null,
       goal_id: SAVINGS_CATEGORIES.has(category) && goalId ? goalId : null,
       note: note.trim() || null,
     };
@@ -381,6 +386,31 @@ export function AddTransactionModal({ open, onClose, accounts, goals, editing = 
                         {a.name}
                       </option>
                     ))}
+                </select>
+              </div>
+            )}
+
+            {/* Loan payment: pick which loan this reduces. Expense + Loan Payments
+                category stores to_account_id and the balance auto-updates. */}
+            {type === "expense" && category === "Loan Payments" && accounts.some((a) => a.type === "loan") && (
+              <div>
+                <label className="modal-label">
+                  Pay down loan{" "}
+                  <span style={{ color: "var(--text-muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                    (reduces balance owed)
+                  </span>
+                </label>
+                <select
+                  className="modal-select"
+                  value={toAccountId}
+                  onChange={(e) => setToAccountId(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {accounts.filter((a) => a.type === "loan").map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}

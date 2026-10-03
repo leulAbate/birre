@@ -18,15 +18,6 @@ export interface TransactionInput {
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
-// Signed effect a transaction has on the "from" account (account_id) and
-// the "to" account (to_account_id). Transfers debit from and credit to;
-// expense debits from; income credits from.
-function deltas(type: TxType, amount: number): { from: number; to: number } {
-  if (type === "expense") return { from: -amount, to: 0 };
-  if (type === "income") return { from: amount, to: 0 };
-  return { from: -amount, to: amount }; // transfer
-}
-
 async function getAccountType(supabase: Client, accountId: string | null): Promise<string | null> {
   if (!accountId) return null;
   const { data } = await supabase
@@ -37,42 +28,55 @@ async function getAccountType(supabase: Client, accountId: string | null): Promi
   return (data?.type as string) ?? null;
 }
 
+/**
+ * Apply balance effects of a transaction.
+ *
+ * From account (money source):
+ *   - debit-type account (checking/savings/etc): auto-adjust
+ *   - credit card: skip (user manages payoff manually)
+ *   - loan: skip (loans aren't a payment source)
+ *
+ * To account (destination):
+ *   - debit-type destination on a transfer: +amount
+ *   - loan destination (on either transfer OR expense): reduce debt by amount
+ *     (lets a plain "Loan Payments" expense drop the loan balance when the
+ *     user selects the loan in the modal's loan-account picker)
+ *   - credit card destination: skip
+ */
 async function applyDeltas(
   supabase: Client,
   row: { type: TxType; amount: number; account_id: string | null; to_account_id: string | null },
   direction: 1 | -1,
 ) {
-  const d = deltas(row.type, Number(row.amount));
+  const amt = Number(row.amount);
 
-  // From account: debit-type accounts auto-adjust. Credit cards and
-  // loans are user-managed from this side (you don't "spend" from a loan).
-  if (row.account_id && d.from !== 0) {
+  if (row.account_id) {
     const fromType = await getAccountType(supabase, row.account_id);
     if (fromType !== "credit" && fromType !== "loan") {
-      await supabase.rpc("adjust_account_balance", {
-        p_account_id: row.account_id,
-        p_delta: d.from * direction,
-      });
+      let delta = 0;
+      if (row.type === "expense") delta = -amt;
+      else if (row.type === "income") delta = +amt;
+      else if (row.type === "transfer") delta = -amt;
+      if (delta !== 0) {
+        await supabase.rpc("adjust_account_balance", {
+          p_account_id: row.account_id,
+          p_delta: delta * direction,
+        });
+      }
     }
   }
 
-  // To account: credit cards are still manual (you pay them off separately
-  // and set statement balance by hand). Loans are different — paying into
-  // a loan reduces the debt, so we flip the sign (positive transfer-to
-  // becomes a negative on the loan's balance).
-  if (row.to_account_id && d.to !== 0) {
+  if (row.to_account_id) {
     const toType = await getAccountType(supabase, row.to_account_id);
-    if (toType === "credit") {
-      // skip
-    } else if (toType === "loan") {
+    if (toType === "loan") {
       await supabase.rpc("adjust_account_balance", {
         p_account_id: row.to_account_id,
-        p_delta: -d.to * direction,
+        p_delta: -amt * direction,
       });
-    } else {
+    } else if (toType !== "credit" && row.type === "transfer") {
       await supabase.rpc("adjust_account_balance", {
         p_account_id: row.to_account_id,
-        p_delta: d.to * direction,
+        p_delta: amt * direction,
       });
     }
   }
@@ -100,7 +104,7 @@ export async function addTransaction(input: TransactionInput) {
       type: input.type,
       category: input.category,
       account_id: input.account_id ?? null,
-      to_account_id: input.type === "transfer" ? (input.to_account_id ?? null) : null,
+      to_account_id: input.to_account_id ?? null,
       goal_id: input.goal_id ?? null,
       note: input.note ?? null,
     })
@@ -171,9 +175,6 @@ export async function updateTransaction(id: string, input: Partial<TransactionIn
     .single();
 
   const patch: Record<string, unknown> = { ...input };
-  if (input.type !== undefined && input.type !== "transfer") {
-    patch.to_account_id = null;
-  }
 
   const { data: next, error } = await supabase
     .from("transactions")
