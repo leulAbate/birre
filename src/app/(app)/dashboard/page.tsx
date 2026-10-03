@@ -56,20 +56,28 @@ export default async function DashboardPage({ searchParams }: Props) {
     getPaystubs({ yearStart: `${now.getFullYear()}-01-01` }),
   ]);
 
-  const budgets = (budgetsRes.data ?? []) as Budget[];
-
+  const rawBudgets = (budgetsRes.data ?? []) as Budget[];
   const summary = computeMonthSummary(monthTransactions);
-  const budgetProgress = computeBudgetProgress(budgets, summary.byCategory);
-  const insights = computePulseInsights(summary, budgetProgress, trend);
-  const activePlans = goals
-    .filter((g) => g.status === "active")
-    .map((g) => computeGoalProgress(g, allTransactions));
 
   // Monthly take-home baseline for % budgeting.
   // Only paystub projection counts — annual_salary is gross, not take-home.
   // If no paystubs, % is disabled and the user is prompted to add one.
   const proj = projectYTD(paystubs, profile?.pay_frequency ?? "biweekly");
   const monthlyIncome = proj ? proj.annual.netPay / 12 : 0;
+
+  // Live-adjust %-based budgets so a raise / bonus / new paystub flows
+  // through without the user having to re-save. $-based budgets stay as-is.
+  const budgets: Budget[] = rawBudgets.map((b) => {
+    if (b.pct != null && monthlyIncome > 0) {
+      return { ...b, amount: (Number(b.pct) / 100) * monthlyIncome };
+    }
+    return b;
+  });
+  const budgetProgress = computeBudgetProgress(budgets, summary.byCategory);
+  const insights = computePulseInsights(summary, budgetProgress, trend);
+  const activePlans = goals
+    .filter((g) => g.status === "active")
+    .map((g) => computeGoalProgress(g, allTransactions));
 
   return (
     <DashboardClient

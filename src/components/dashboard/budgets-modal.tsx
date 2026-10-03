@@ -32,6 +32,24 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
   const available = BUDGETABLE.filter((c) => !existingCategories.has(c));
   const budgetByCategory = new Map(budgets.map((b) => [b.category, b]));
 
+  // Allocated so far (across all budget categories, both $ and %).
+  const totalAllocated = budgets.reduce((s, b) => s + Number(b.amount), 0);
+  const remainingDollar = monthlyIncome - totalAllocated;
+  const remainingPct = monthlyIncome > 0 ? (remainingDollar / monthlyIncome) * 100 : 0;
+
+  // Live preview for what the user is typing in the Add form.
+  const previewAmount = (() => {
+    if (mode === "dollar") {
+      const n = parseFloat(amount);
+      return n > 0 ? n : null;
+    }
+    const p = parseFloat(pctInput);
+    if (!p || p <= 0 || monthlyIncome <= 0) return null;
+    return (p / 100) * monthlyIncome;
+  })();
+  const afterAddRemaining = previewAmount !== null ? remainingDollar - previewAmount : remainingDollar;
+  const previewExceedsRemaining = previewAmount !== null && previewAmount > remainingDollar;
+
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -97,13 +115,6 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
     });
   }
 
-  const previewAmount = (() => {
-    if (mode === "dollar" || !pctInput) return null;
-    const p = parseFloat(pctInput);
-    if (!p || monthlyIncome <= 0) return null;
-    return (p / 100) * monthlyIncome;
-  })();
-
   return (
     <div className={"modal-overlay" + (open ? " open" : "")} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-panel" style={{ width: 540 }} onClick={(e) => e.stopPropagation()}>
@@ -111,6 +122,54 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
           <h2 className="text-xl font-bold page-title">Budgets</h2>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "6px 10px" }}>✕</button>
         </div>
+
+        {/* Remaining tracker */}
+        {monthlyIncome > 0 && (
+          <div
+            className="rounded-xl p-3 mb-4"
+            style={{
+              background: remainingDollar < 0 ? "var(--over-bg)" : "var(--progress-bg)",
+              border: `1px solid ${remainingDollar < 0 ? "var(--over-border)" : "var(--border)"}`,
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-label mb-0.5">
+                  {remainingDollar < 0 ? "Over by" : "Remaining to budget"}
+                </p>
+                <p
+                  className="text-lg font-bold"
+                  style={{ color: remainingDollar < 0 ? "var(--over)" : "var(--accent)" }}
+                >
+                  <G>{fmtCurrency(Math.abs(remainingDollar))}</G>
+                  <span className="text-xs font-semibold ml-2" style={{ color: "var(--text-muted)" }}>
+                    ({Math.abs(remainingPct).toFixed(1)}%)
+                  </span>
+                </p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p className="section-label mb-0.5">Of</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <G>{fmtCurrency(monthlyIncome)}</G>
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>take-home</p>
+              </div>
+            </div>
+            {/* Allocation bar */}
+            <div className="progress-track mt-2" style={{ height: 6 }}>
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.min(100, (totalAllocated / monthlyIncome) * 100)}%`,
+                  background:
+                    remainingDollar < 0 ? "var(--over)" :
+                    remainingPct < 10 ? "var(--warn)" :
+                    "var(--accent)",
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {budgetProgress.length > 0 && (
           <div className="mb-6">
@@ -254,20 +313,44 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
                 />
               )}
             </div>
-            {mode === "percent" && (
-              <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-                {monthlyIncome > 0 ? (
-                  <>
-                    Monthly take-home: <G>{fmtCurrency(monthlyIncome)}</G>
-                    {previewAmount !== null && (
-                      <> · This = <G>{fmtCurrency(previewAmount)}</G></>
-                    )}
-                  </>
-                ) : (
-                  <span style={{ color: "var(--warn)" }}>
-                    Add a paystub on the Tax page to use %.
-                  </span>
-                )}
+            {/* Live preview + remaining feedback */}
+            {previewAmount !== null && monthlyIncome > 0 && (
+              <div
+                className="rounded-lg px-3 py-2 mb-3"
+                style={{
+                  background: previewExceedsRemaining ? "var(--over-bg)" : "var(--progress-bg)",
+                  border: `1px solid ${previewExceedsRemaining ? "var(--over-border)" : "var(--border)"}`,
+                  fontSize: 12,
+                }}
+              >
+                <p style={{ color: "var(--text-secondary)" }}>
+                  This budget = <G>{fmtCurrency(previewAmount)}</G>
+                  {mode === "dollar" && (
+                    <> ({((previewAmount / monthlyIncome) * 100).toFixed(1)}% of take-home)</>
+                  )}
+                </p>
+                <p
+                  style={{
+                    color: previewExceedsRemaining ? "var(--over)" : "var(--text-muted)",
+                    marginTop: 2,
+                  }}
+                >
+                  {previewExceedsRemaining ? (
+                    <>
+                      ⚠ Over by <G>{fmtCurrency(-afterAddRemaining)}</G>. You can still add it, but
+                      you&apos;ll be allocating more than your take-home.
+                    </>
+                  ) : (
+                    <>
+                      <G>{fmtCurrency(afterAddRemaining)}</G> ({((afterAddRemaining / monthlyIncome) * 100).toFixed(1)}%) would be left after this.
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
+            {mode === "percent" && monthlyIncome <= 0 && (
+              <p className="text-xs mb-3" style={{ color: "var(--warn)" }}>
+                Add a paystub on the Tax page to use %.
               </p>
             )}
             <button type="submit" disabled={pending} className="btn-primary w-full">
