@@ -53,6 +53,12 @@ export function AccountsModal({ open, onClose, accounts }: Props) {
     });
   }
 
+  function handleTypeChange(id: string, newType: AccountType) {
+    startTransition(async () => {
+      await updateAccount(id, { type: newType });
+    });
+  }
+
   function handleDelete(id: string) {
     startTransition(async () => {
       await deleteAccount(id);
@@ -79,8 +85,22 @@ export function AccountsModal({ open, onClose, accounts }: Props) {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{a.name}</p>
-                    <p className="text-xs capitalize" style={{ color: "var(--text-muted)" }}>{a.type}</p>
                   </div>
+                  <select
+                    value={a.type}
+                    onChange={(e) => handleTypeChange(a.id, e.target.value as AccountType)}
+                    title="Account type"
+                    style={{
+                      width: 110, padding: "6px 10px", borderRadius: 8,
+                      border: "1px solid var(--border)", background: "var(--progress-bg)",
+                      color: "var(--text-primary)", fontSize: 12, outline: "none",
+                      textTransform: "capitalize", cursor: "pointer",
+                    }}
+                  >
+                    {TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                   <input
                     type="number"
                     step="0.01"
@@ -91,7 +111,7 @@ export function AccountsModal({ open, onClose, accounts }: Props) {
                       }
                     }}
                     style={{
-                      width: 120, padding: "6px 10px", borderRadius: 8,
+                      width: 110, padding: "6px 10px", borderRadius: 8,
                       border: "1px solid var(--border)", background: "var(--progress-bg)",
                       color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
                     }}

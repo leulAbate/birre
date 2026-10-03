@@ -27,15 +27,14 @@ function deltas(type: TxType, amount: number): { from: number; to: number } {
   return { from: -amount, to: amount }; // transfer
 }
 
-async function isManualOnlyAccount(supabase: Client, accountId: string | null): Promise<boolean> {
-  if (!accountId) return false;
+async function getAccountType(supabase: Client, accountId: string | null): Promise<string | null> {
+  if (!accountId) return null;
   const { data } = await supabase
     .from("accounts")
     .select("type")
     .eq("id", accountId)
     .single();
-  // Credit cards (paid off monthly) and loans both have manual balances.
-  return data?.type === "credit" || data?.type === "loan";
+  return (data?.type as string) ?? null;
 }
 
 async function applyDeltas(
@@ -44,20 +43,38 @@ async function applyDeltas(
   direction: 1 | -1,
 ) {
   const d = deltas(row.type, Number(row.amount));
-  // Credit cards and loans are user-managed: don't auto-adjust their
-  // balance from transactions. User sets statement / payoff balance
-  // manually via the Accounts modal.
-  if (row.account_id && d.from !== 0 && !(await isManualOnlyAccount(supabase, row.account_id))) {
-    await supabase.rpc("adjust_account_balance", {
-      p_account_id: row.account_id,
-      p_delta: d.from * direction,
-    });
+
+  // From account: debit-type accounts auto-adjust. Credit cards and
+  // loans are user-managed from this side (you don't "spend" from a loan).
+  if (row.account_id && d.from !== 0) {
+    const fromType = await getAccountType(supabase, row.account_id);
+    if (fromType !== "credit" && fromType !== "loan") {
+      await supabase.rpc("adjust_account_balance", {
+        p_account_id: row.account_id,
+        p_delta: d.from * direction,
+      });
+    }
   }
-  if (row.to_account_id && d.to !== 0 && !(await isManualOnlyAccount(supabase, row.to_account_id))) {
-    await supabase.rpc("adjust_account_balance", {
-      p_account_id: row.to_account_id,
-      p_delta: d.to * direction,
-    });
+
+  // To account: credit cards are still manual (you pay them off separately
+  // and set statement balance by hand). Loans are different — paying into
+  // a loan reduces the debt, so we flip the sign (positive transfer-to
+  // becomes a negative on the loan's balance).
+  if (row.to_account_id && d.to !== 0) {
+    const toType = await getAccountType(supabase, row.to_account_id);
+    if (toType === "credit") {
+      // skip
+    } else if (toType === "loan") {
+      await supabase.rpc("adjust_account_balance", {
+        p_account_id: row.to_account_id,
+        p_delta: -d.to * direction,
+      });
+    } else {
+      await supabase.rpc("adjust_account_balance", {
+        p_account_id: row.to_account_id,
+        p_delta: d.to * direction,
+      });
+    }
   }
 }
 
