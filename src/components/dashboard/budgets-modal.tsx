@@ -16,7 +16,11 @@ interface Props {
   monthlyIncome: number;   // used to convert % → $
 }
 
-const BUDGETABLE: string[] = [...CATEGORIES.needs, ...CATEGORIES.wants];
+const BUDGETABLE: string[] = [
+  ...CATEGORIES.needs,
+  ...CATEGORIES.wants,
+  ...CATEGORIES.savings,
+];
 
 type Mode = "dollar" | "percent";
 

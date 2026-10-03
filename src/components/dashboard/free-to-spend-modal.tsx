@@ -3,29 +3,34 @@
 import type { BudgetProgress } from "@/lib/calculations/summary";
 import { fmtCurrency } from "@/lib/utils";
 import { G } from "@/components/shell/ghost";
-import { CATEGORIES } from "@/lib/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  wantsBudgets: BudgetProgress[]; // only wants-group budgets
-  wantsTotal: number;
-  wantsSpent: number;
+  income: number;             // monthly take-home baseline
+  actualIncome: number;       // actual income logged this month
+  expense: number;            // total expenses this month
+  saved: number;              // savings transfers this month (not counted as "used")
+  budgetProgress: BudgetProgress[];
 }
 
 export function FreeToSpendModal({
   open,
   onClose,
-  wantsBudgets,
-  wantsTotal,
-  wantsSpent,
+  income,
+  actualIncome,
+  expense,
+  saved,
+  budgetProgress,
 }: Props) {
-  const remaining = wantsTotal - wantsSpent;
-  const percentUsed = wantsTotal > 0 ? Math.min(100, (wantsSpent / wantsTotal) * 100) : 0;
-  const isOver = remaining < 0;
+  const freeToSpend = Math.max(0, income - expense);
+  const spentPct = income > 0 ? Math.min(100, (expense / income) * 100) : 0;
+  const isOver = income > 0 && expense > income;
 
-  const wantsSet = new Set<string>(CATEGORIES.wants);
-  const rows = wantsBudgets.filter((b) => wantsSet.has(b.category));
+  // Top expense categories to show breakdown
+  const expenseByCategory = budgetProgress
+    .filter((b) => b.spent > 0)
+    .sort((a, b) => b.spent - a.spent);
 
   return (
     <div
@@ -40,14 +45,18 @@ export function FreeToSpendModal({
               className="text-3xl font-bold accent-num"
               style={{ color: isOver ? "var(--over)" : "var(--accent)" }}
             >
-              <G>{fmtCurrency(Math.max(0, remaining))}</G>
+              <G>{fmtCurrency(isOver ? expense - income : freeToSpend)}</G>
             </p>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-              {wantsTotal === 0
-                ? "No wants budget set"
-                : isOver
-                  ? <>Over <G>{fmtCurrency(-remaining)}</G> on <G>{fmtCurrency(wantsTotal)}</G> wants budget</>
-                  : <>from <G>{fmtCurrency(wantsTotal)}</G> wants budget</>}
+              {income === 0 ? (
+                "No income this month"
+              ) : isOver ? (
+                <>Over by that much vs your take-home</>
+              ) : (
+                <>
+                  of <G>{fmtCurrency(income)}</G> take-home still unspent
+                </>
+              )}
             </p>
           </div>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "6px 10px" }}>
@@ -55,26 +64,32 @@ export function FreeToSpendModal({
           </button>
         </div>
 
-        {wantsTotal > 0 && (
+        {income > 0 && (
           <div className="progress-track mb-5">
             <div
               className="progress-fill"
               style={{
-                width: `${percentUsed}%`,
-                background: isOver ? "var(--over)" : "var(--accent)",
+                width: `${spentPct}%`,
+                background: isOver ? "var(--over)" : spentPct >= 80 ? "var(--warn)" : "var(--accent)",
               }}
             />
           </div>
         )}
 
-        <p className="section-label mb-3">Remaining per category</p>
-        {rows.length === 0 ? (
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <Mini label="Income" value={fmtCurrency(actualIncome)} color="var(--accent)" />
+          <Mini label="Spent" value={fmtCurrency(expense)} color="var(--text-primary)" />
+          <Mini label="Saved" value={fmtCurrency(saved)} color="var(--violet)" />
+        </div>
+
+        <p className="section-label mb-3">Spent by category</p>
+        {expenseByCategory.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Set budgets for Eating Out, Ride Share, or Misc to see them here.
+            Nothing spent yet this month.
           </p>
         ) : (
           <div className="space-y-3">
-            {rows.map((b) => {
+            {expenseByCategory.map((b) => {
               const over = b.remaining < 0;
               const color = over
                 ? "var(--over)"
@@ -86,25 +101,47 @@ export function FreeToSpendModal({
                   <div className="flex justify-between text-sm mb-1.5">
                     <span style={{ color: "var(--text-secondary)" }}>{b.category}</span>
                     <span className="font-semibold" style={{ color }}>
-                      {over ? (
-                        <>−<G>{fmtCurrency(-b.remaining)}</G> over</>
-                      ) : (
-                        <><G>{fmtCurrency(b.remaining)}</G> left</>
+                      <G>{fmtCurrency(b.spent)}</G>
+                      {b.budgeted > 0 && (
+                        <span className="text-xs ml-1" style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                          / <G>{fmtCurrency(b.budgeted)}</G>
+                        </span>
                       )}
                     </span>
                   </div>
-                  <div className="progress-track">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${Math.min(100, b.percent)}%`, background: color }}
-                    />
-                  </div>
+                  {b.budgeted > 0 && (
+                    <div className="progress-track">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${Math.min(100, b.percent)}%`, background: color }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Mini({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="glass rounded-xl p-3 text-center">
+      <p className="section-label mb-1" style={{ fontSize: 9 }}>{label}</p>
+      <p className="text-sm font-bold" style={{ color }}>
+        <G>{value}</G>
+      </p>
     </div>
   );
 }

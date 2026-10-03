@@ -34,6 +34,9 @@ export function computeMonthSummary(transactions: Transaction[]): MonthSummary {
       byCategory.set(tx.category, (byCategory.get(tx.category) ?? 0) + amt);
     } else if (tx.type === "transfer" && SAV.has(tx.category)) {
       saved += amt;
+      // Track savings transfers in byCategory too so savings budgets can
+      // show progress (budgeted vs saved so far).
+      byCategory.set(tx.category, (byCategory.get(tx.category) ?? 0) + amt);
     }
   }
 

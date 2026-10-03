@@ -12,7 +12,8 @@ interface Props {
 }
 
 export function LoansModal({ open, onClose, loans, onManage }: Props) {
-  const total = loans.reduce((s, a) => s + Number(a.balance), 0);
+  // Balance may be stored negative or positive; treat as absolute debt owed.
+  const total = loans.reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
 
   return (
     <div
@@ -68,7 +69,7 @@ export function LoansModal({ open, onClose, loans, onManage }: Props) {
                     </p>
                   </div>
                   <p className="text-sm font-semibold" style={{ color: "var(--over)" }}>
-                    <G>{"−" + fmtCurrency(Number(a.balance))}</G>
+                    <G>{"−" + fmtCurrency(Math.abs(Number(a.balance)))}</G>
                   </p>
                 </div>
               ))}

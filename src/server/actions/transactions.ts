@@ -27,19 +27,32 @@ function deltas(type: TxType, amount: number): { from: number; to: number } {
   return { from: -amount, to: amount }; // transfer
 }
 
+async function isCredit(supabase: Client, accountId: string | null): Promise<boolean> {
+  if (!accountId) return false;
+  const { data } = await supabase
+    .from("accounts")
+    .select("type")
+    .eq("id", accountId)
+    .single();
+  return data?.type === "credit";
+}
+
 async function applyDeltas(
   supabase: Client,
   row: { type: TxType; amount: number; account_id: string | null; to_account_id: string | null },
   direction: 1 | -1,
 ) {
   const d = deltas(row.type, Number(row.amount));
-  if (row.account_id && d.from !== 0) {
+  // Credit accounts are user-managed: don't auto-adjust their balance from
+  // transactions. User pays them off separately and sets the statement
+  // balance manually via the Accounts modal.
+  if (row.account_id && d.from !== 0 && !(await isCredit(supabase, row.account_id))) {
     await supabase.rpc("adjust_account_balance", {
       p_account_id: row.account_id,
       p_delta: d.from * direction,
     });
   }
-  if (row.to_account_id && d.to !== 0) {
+  if (row.to_account_id && d.to !== 0 && !(await isCredit(supabase, row.to_account_id))) {
     await supabase.rpc("adjust_account_balance", {
       p_account_id: row.to_account_id,
       p_delta: d.to * direction,

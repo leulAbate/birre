@@ -53,9 +53,11 @@ export function DashboardClient({
   const [openLoans, setOpenLoans] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
 
+  // Credit balance treated as absolute debt (sign stripped) so stray
+  // negatives from older auto-balance behavior don't confuse the math.
   const netWorth = accounts.reduce((sum, a) => {
-    const sign = a.type === "credit" ? -1 : 1;
-    return sum + sign * Number(a.balance);
+    if (a.type === "credit") return sum - Math.abs(Number(a.balance));
+    return sum + Number(a.balance);
   }, 0);
   const netWorthPositive = accounts
     .filter((a) => a.type !== "credit")
@@ -65,21 +67,20 @@ export function DashboardClient({
     : 0;
 
   const loanAccounts = accounts.filter((a) => a.type === "credit");
-  const loanBalance = loanAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
+  const loanBalance = loanAccounts.reduce((sum, a) => sum + Math.abs(Number(a.balance)), 0);
   const loanFill = netWorthPositive > 0
     ? Math.min(100, (loanBalance / netWorthPositive) * 100)
     : 0;
 
-  const wantsSet = new Set<string>(CATEGORIES.wants);
-  const wantsBudgets = budgetProgress.filter((b) => wantsSet.has(b.category));
-  const wantsTotal = wantsBudgets.reduce((s, b) => s + b.budgeted, 0);
-  const wantsSpent = wantsBudgets.reduce((s, b) => s + b.spent, 0);
-  const freeToSpend = Math.max(0, wantsTotal - wantsSpent);
-  const wantsPercent = wantsTotal > 0 ? (wantsSpent / wantsTotal) * 100 : 0;
-
-  const spentPercent = summary.income > 0
-    ? Math.min(100, (summary.expense / summary.income) * 100)
-    : 0;
+  // Free to Spend = take-home - what's been spent so far this month.
+  // Savings transfers are NOT counted as "used" (money's still yours).
+  const freeToSpend = Math.max(0, monthlyIncome - summary.expense);
+  const spentPercent = monthlyIncome > 0
+    ? Math.min(100, (summary.expense / monthlyIncome) * 100)
+    : summary.income > 0
+      ? Math.min(100, (summary.expense / summary.income) * 100)
+      : 0;
+  const overSpent = monthlyIncome > 0 && summary.expense > monthlyIncome;
 
   function shiftMonth(direction: number) {
     const [y, m] = ym.split("-").map(Number);
@@ -129,11 +130,17 @@ export function DashboardClient({
           label="Free to Spend"
           value={fmtCurrency(freeToSpend)}
           accent
-          sub={wantsTotal > 0 ? `of ${fmtCurrency(wantsTotal)} wants budget` : "No wants budget set"}
-          progress={wantsPercent}
+          sub={
+            monthlyIncome > 0
+              ? `of ${fmtCurrency(monthlyIncome)} take-home`
+              : summary.income > 0
+                ? `of ${fmtCurrency(summary.income)} income`
+                : "No income yet this month"
+          }
+          progress={spentPercent}
           progressColor={
-            wantsPercent > 100 ? "var(--over)" :
-            wantsPercent >= 80 ? "var(--warn)" :
+            overSpent ? "var(--over)" :
+            spentPercent >= 80 ? "var(--warn)" :
             "var(--accent)"
           }
           onClick={() => setOpenFreeToSpend(true)}
@@ -206,9 +213,11 @@ export function DashboardClient({
       <FreeToSpendModal
         open={openFreeToSpend}
         onClose={() => setOpenFreeToSpend(false)}
-        wantsBudgets={wantsBudgets}
-        wantsTotal={wantsTotal}
-        wantsSpent={wantsSpent}
+        income={monthlyIncome > 0 ? monthlyIncome : summary.income}
+        actualIncome={summary.income}
+        expense={summary.expense}
+        saved={summary.saved}
+        budgetProgress={budgetProgress}
       />
       <SpentModal
         open={openSpent}
