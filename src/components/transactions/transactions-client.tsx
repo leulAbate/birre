@@ -277,6 +277,7 @@ export function TransactionsClient({ ym, transactions, accounts, goals, budgets 
             goals={goals}
             budgets={budgets}
             onEdit={(tx) => setEditing(tx)}
+            catFilter={catFilter}
           />
         ) : (
           <TransactionTable

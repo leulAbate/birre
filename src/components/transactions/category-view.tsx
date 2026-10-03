@@ -13,6 +13,7 @@ interface Props {
   goals: Goal[];
   budgets: Budget[];
   onEdit: (tx: Transaction) => void;
+  catFilter: string;        // when set to a specific category, that card auto-expands
 }
 
 type Group = "needs" | "wants" | "savings" | "income";
@@ -24,7 +25,7 @@ const GROUP_LABEL: Record<Group, string> = {
   income: "Income",
 };
 
-export function CategoryView({ transactions, accounts, goals, budgets, onEdit }: Props) {
+export function CategoryView({ transactions, accounts, goals, budgets, onEdit, catFilter }: Props) {
   const accountById = Object.fromEntries(accounts.map((a) => [a.id, a]));
   const goalById = Object.fromEntries(goals.map((g) => [g.id, g]));
   const budgetByCat = new Map(budgets.map((b) => [b.category, Number(b.amount)]));
@@ -65,6 +66,7 @@ export function CategoryView({ transactions, accounts, goals, budgets, onEdit }:
                   accountById={accountById}
                   goalById={goalById}
                   onEdit={onEdit}
+                  expanded={catFilter === category}
                 />
               ))}
             </div>
@@ -82,6 +84,7 @@ function CategoryCard({
   accountById,
   goalById,
   onEdit,
+  expanded,
 }: {
   category: string;
   txs: Transaction[];
@@ -89,7 +92,11 @@ function CategoryCard({
   accountById: Record<string, Account>;
   goalById: Record<string, Goal>;
   onEdit: (tx: Transaction) => void;
+  expanded: boolean;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const shouldShowAll = expanded || showAll;
+  const previewLimit = 6;
   const total = txs.reduce((s, t) => {
     if (t.type === "expense") return s + Number(t.amount);
     if (t.type === "income") return s - Number(t.amount);
@@ -163,7 +170,7 @@ function CategoryCard({
         )}
       </div>
       <div>
-        {txs.slice(0, 6).map((tx) => (
+        {(shouldShowAll ? txs : txs.slice(0, previewLimit)).map((tx) => (
           <TxRow
             key={tx.id}
             tx={tx}
@@ -172,13 +179,21 @@ function CategoryCard({
             onEdit={onEdit}
           />
         ))}
-        {txs.length > 6 && (
-          <p
-            className="text-xs px-4 py-2"
-            style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border)" }}
+        {txs.length > previewLimit && !expanded && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="text-xs px-4 py-2 w-full text-left"
+            style={{
+              color: "var(--accent)",
+              borderTop: "1px solid var(--border)",
+              background: "transparent",
+              cursor: "pointer",
+            }}
           >
-            +{txs.length - 6} more · use search or Date view to see all
-          </p>
+            {showAll
+              ? `Show less`
+              : `+${txs.length - previewLimit} more · show all`}
+          </button>
         )}
       </div>
     </div>
