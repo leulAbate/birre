@@ -60,10 +60,18 @@ export default async function DashboardPage({ searchParams }: Props) {
   const summary = computeMonthSummary(monthTransactions);
 
   // Monthly take-home baseline for % budgeting.
-  // Only paystub projection counts — annual_salary is gross, not take-home.
-  // If no paystubs, % is disabled and the user is prompted to add one.
+  //
+  // Steady-state projection = paystub net / 12 — stable, future-looking.
+  // Actual = sum of income transactions for the viewed month — includes
+  // bonuses or any extra income the user logs.
+  //
+  // Use max(projection, actual) so:
+  //   - Early in the month, before actual income has arrived, we still
+  //     show the projection as the expected envelope.
+  //   - After a bonus or extra pay lands, the baseline bumps up to match.
   const proj = projectYTD(paystubs, profile?.pay_frequency ?? "biweekly");
-  const monthlyIncome = proj ? proj.annual.netPay / 12 : 0;
+  const projectedMonthly = proj ? proj.annual.netPay / 12 : 0;
+  const monthlyIncome = Math.max(projectedMonthly, summary.income);
 
   // Live-adjust %-based budgets so a raise / bonus / new paystub flows
   // through without the user having to re-save. $-based budgets stay as-is.
