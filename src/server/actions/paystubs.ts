@@ -85,6 +85,35 @@ export async function rebuildPaycheckTransactions() {
     getPaystubs(),
   ]);
   const frequency = profile?.pay_frequency ?? "biweekly";
+  const depositAccountId = profile?.paycheck_account_id ?? null;
+
+  // Before deleting existing paystub-generated rows, read their current
+  // amounts + account_ids so we can reverse their balance effect. Only
+  // reverse on debit-type accounts (never on credit/loan — those are
+  // user-managed and were skipped by applyDeltas on insert anyway).
+  const { data: existingRows } = await supabase
+    .from("transactions")
+    .select("amount, account_id")
+    .not("paystub_id", "is", null);
+
+  if (existingRows && existingRows.length > 0) {
+    // Pull account types once so we can skip credit/loan
+    const accountIds = [...new Set(existingRows.map((r) => r.account_id).filter(Boolean))] as string[];
+    const typeByAccount: Record<string, string> = {};
+    if (accountIds.length > 0) {
+      const { data: accs } = await supabase.from("accounts").select("id, type").in("id", accountIds);
+      for (const a of accs ?? []) typeByAccount[a.id as string] = a.type as string;
+    }
+    for (const r of existingRows) {
+      if (!r.account_id) continue;
+      const t = typeByAccount[r.account_id];
+      if (t === "credit" || t === "loan") continue;
+      await supabase.rpc("adjust_account_balance", {
+        p_account_id: r.account_id,
+        p_delta: -Number(r.amount),
+      });
+    }
+  }
 
   await supabase.from("transactions").delete().not("paystub_id", "is", null);
 
@@ -95,7 +124,7 @@ export async function rebuildPaycheckTransactions() {
       return {
         user_id: user.id,
         paystub_id: template.id,
-        account_id: null,
+        account_id: depositAccountId,
         goal_id: null,
         date,
         description: template.employer ? `Paycheck · ${template.employer}` : "Paycheck",
@@ -107,7 +136,40 @@ export async function rebuildPaycheckTransactions() {
     });
     const { error } = await supabase.from("transactions").insert(rows);
     if (error) return { error: error.message };
+
+    // Credit the deposit account by the total if it's a debit-type account.
+    if (depositAccountId) {
+      const { data: acc } = await supabase
+        .from("accounts")
+        .select("type")
+        .eq("id", depositAccountId)
+        .single();
+      if (acc && acc.type !== "credit" && acc.type !== "loan") {
+        const total = rows.reduce((s, r) => s + Number(r.amount), 0);
+        if (total > 0) {
+          await supabase.rpc("adjust_account_balance", {
+            p_account_id: depositAccountId,
+            p_delta: total,
+          });
+        }
+      }
+    }
   }
+  return { ok: true };
+}
+
+export async function setPaycheckAccount(accountId: string | null) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ paycheck_account_id: accountId })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+
+  await syncPaycheckTransactions();
   return { ok: true };
 }
 

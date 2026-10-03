@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Paystub, Profile } from "@/lib/types";
+import type { Account, Paystub, Profile } from "@/lib/types";
 import { projectYTD, totalsFor } from "@/lib/calculations/paystubs";
+import { setPaycheckAccount } from "@/server/actions/paystubs";
 import { PaycheckDecoder } from "./paycheck-decoder";
 import { PaystubModal } from "./paystub-modal";
 import { YtdSummary } from "./ytd-summary";
@@ -15,17 +16,29 @@ interface Props {
   profile: Profile | null;
   paystubs: Paystub[];
   year: number;
+  accounts: Account[];
 }
 
-export function TaxClient({ profile, paystubs, year }: Props) {
+export function TaxClient({ profile, paystubs, year, accounts }: Props) {
   const router = useRouter();
   const [modalState, setModalState] = useState<
     { open: false } | { open: true; editing: Paystub | null }
   >({ open: false });
+  const [savingAccount, startAccountTransition] = useTransition();
 
   const frequency = profile?.pay_frequency ?? "biweekly";
   const projection = projectYTD(paystubs, frequency);
   const activeTemplate = projection?.activeTemplate ?? null;
+  const depositAccountId = profile?.paycheck_account_id ?? "";
+  const depositableAccounts = accounts.filter(
+    (a) => a.type !== "credit" && a.type !== "loan",
+  );
+
+  function handleDepositAccountChange(id: string) {
+    startAccountTransition(async () => {
+      await setPaycheckAccount(id || null);
+    });
+  }
 
   const currentYear = new Date().getFullYear();
   const canGoForward = year < currentYear;
@@ -68,6 +81,36 @@ export function TaxClient({ profile, paystubs, year }: Props) {
           </svg>
           {paystubs.length === 0 ? "Add Paystub" : "New Paystub Version"}
         </button>
+      </div>
+
+      {/* Deposit account picker */}
+      <div
+        className="glass rounded-2xl px-5 py-3 flex items-center gap-3"
+        style={{ flexWrap: "wrap" }}
+      >
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <p className="section-label mb-0.5">Deposit paychecks to</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            Each auto-generated paycheck row credits this account&apos;s balance.
+          </p>
+        </div>
+        <select
+          value={depositAccountId}
+          onChange={(e) => handleDepositAccountChange(e.target.value)}
+          disabled={savingAccount}
+          className="modal-select"
+          style={{ minWidth: 220 }}
+        >
+          <option value="">None (don&apos;t credit any account)</option>
+          {depositableAccounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name} ({a.type})
+            </option>
+          ))}
+        </select>
+        {savingAccount && (
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>Saving…</span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">

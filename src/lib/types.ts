@@ -4,7 +4,7 @@ export type Theme = 'light' | 'dark';
 export type FilingStatus = 'single' | 'mfj' | 'hoh';
 export type RetirementType = 'roth' | 'traditional';
 export type PayFrequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
-export type AccountType = 'checking' | 'savings' | 'credit' | 'brokerage' | 'cash' | 'retirement';
+export type AccountType = 'checking' | 'savings' | 'credit' | 'brokerage' | 'cash' | 'retirement' | 'loan';
 export type GoalStatus = 'active' | 'wishlist' | 'complete' | 'archived';
 export type TxType = 'expense' | 'income' | 'transfer';
 export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';
@@ -22,6 +22,7 @@ export interface Profile {
   health_pct: number;
   hsa_per_paycheck: number;
   fica_exempt: boolean;
+  paycheck_account_id: string | null;
   created_at: string;
 }
 

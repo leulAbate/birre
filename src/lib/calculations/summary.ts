@@ -25,14 +25,23 @@ export function computeMonthSummary(transactions: Transaction[]): MonthSummary {
 
   for (const tx of transactions) {
     const amt = Number(tx.amount);
+    const isSavingsCat = SAV.has(tx.category);
+
     if (tx.type === "income") {
       income += amt;
     } else if (tx.type === "expense") {
-      expense += amt;
-      if (NEEDS.has(tx.category)) needs += amt;
-      else if (WANTS.has(tx.category)) wants += amt;
+      // A savings-category expense (e.g. logged quickly via Quick Add,
+      // where type defaults to expense) is really money moving into
+      // savings — count it as saved, not spent.
+      if (isSavingsCat) {
+        saved += amt;
+      } else {
+        expense += amt;
+        if (NEEDS.has(tx.category)) needs += amt;
+        else if (WANTS.has(tx.category)) wants += amt;
+      }
       byCategory.set(tx.category, (byCategory.get(tx.category) ?? 0) + amt);
-    } else if (tx.type === "transfer" && SAV.has(tx.category)) {
+    } else if (tx.type === "transfer" && isSavingsCat) {
       saved += amt;
       // Track savings transfers in byCategory too so savings budgets can
       // show progress (budgeted vs saved so far).

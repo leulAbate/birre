@@ -27,14 +27,15 @@ function deltas(type: TxType, amount: number): { from: number; to: number } {
   return { from: -amount, to: amount }; // transfer
 }
 
-async function isCredit(supabase: Client, accountId: string | null): Promise<boolean> {
+async function isManualOnlyAccount(supabase: Client, accountId: string | null): Promise<boolean> {
   if (!accountId) return false;
   const { data } = await supabase
     .from("accounts")
     .select("type")
     .eq("id", accountId)
     .single();
-  return data?.type === "credit";
+  // Credit cards (paid off monthly) and loans both have manual balances.
+  return data?.type === "credit" || data?.type === "loan";
 }
 
 async function applyDeltas(
@@ -43,16 +44,16 @@ async function applyDeltas(
   direction: 1 | -1,
 ) {
   const d = deltas(row.type, Number(row.amount));
-  // Credit accounts are user-managed: don't auto-adjust their balance from
-  // transactions. User pays them off separately and sets the statement
-  // balance manually via the Accounts modal.
-  if (row.account_id && d.from !== 0 && !(await isCredit(supabase, row.account_id))) {
+  // Credit cards and loans are user-managed: don't auto-adjust their
+  // balance from transactions. User sets statement / payoff balance
+  // manually via the Accounts modal.
+  if (row.account_id && d.from !== 0 && !(await isManualOnlyAccount(supabase, row.account_id))) {
     await supabase.rpc("adjust_account_balance", {
       p_account_id: row.account_id,
       p_delta: d.from * direction,
     });
   }
-  if (row.to_account_id && d.to !== 0 && !(await isCredit(supabase, row.to_account_id))) {
+  if (row.to_account_id && d.to !== 0 && !(await isManualOnlyAccount(supabase, row.to_account_id))) {
     await supabase.rpc("adjust_account_balance", {
       p_account_id: row.to_account_id,
       p_delta: d.to * direction,

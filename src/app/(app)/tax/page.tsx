@@ -1,4 +1,4 @@
-import { getPaystubs, getProfile } from "@/lib/data";
+import { getAccounts, getPaystubs, getProfile } from "@/lib/data";
 import { rebuildPaycheckTransactions } from "@/server/actions/paystubs";
 import { TaxClient } from "@/components/tax/tax-client";
 
@@ -13,9 +13,10 @@ export default async function TaxPage({ searchParams }: Props) {
   const currentYear = new Date().getFullYear();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [profile, paystubs] = await Promise.all([
+  const [profile, paystubs, accounts] = await Promise.all([
     getProfile(),
     getPaystubs({ yearStart: `${year}-01-01` }),
+    getAccounts(),
   ]);
-  return <TaxClient profile={profile} paystubs={paystubs} year={year} />;
+  return <TaxClient profile={profile} paystubs={paystubs} year={year} accounts={accounts} />;
 }

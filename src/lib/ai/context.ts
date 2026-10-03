@@ -177,13 +177,13 @@ async function dashboardContext(): Promise<string> {
     .filter((g) => g.status === "active")
     .map((g) => computeGoalProgress(g, allTxs));
 
-  const netWorth = accounts.reduce(
-    (s, a) => s + (a.type === "credit" ? -1 : 1) * Number(a.balance),
-    0,
-  );
+  const netWorth = accounts.reduce((s, a) => {
+    if (a.type === "credit" || a.type === "loan") return s - Math.abs(Number(a.balance));
+    return s + Number(a.balance);
+  }, 0);
   const loanBalance = accounts
-    .filter((a) => a.type === "credit")
-    .reduce((s, a) => s + Number(a.balance), 0);
+    .filter((a) => a.type === "loan")
+    .reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
 
   return `
 CURRENT MONTH: ${start.slice(0, 7)}

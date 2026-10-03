@@ -12,7 +12,7 @@ interface Props {
   accounts: Account[];
 }
 
-const TYPES: AccountType[] = ["checking", "savings", "credit", "brokerage", "cash", "retirement"];
+const TYPES: AccountType[] = ["checking", "savings", "credit", "loan", "brokerage", "cash", "retirement"];
 
 export function AccountsModal({ open, onClose, accounts }: Props) {
   const [pending, startTransition] = useTransition();
@@ -110,7 +110,10 @@ export function AccountsModal({ open, onClose, accounts }: Props) {
               ))}
             </div>
             <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-              Total: <G>{fmtCurrency(accounts.reduce((s, a) => s + (a.type === "credit" ? -1 : 1) * Number(a.balance), 0))}</G>
+              Total: <G>{fmtCurrency(accounts.reduce((s, a) => {
+                if (a.type === "credit" || a.type === "loan") return s - Math.abs(Number(a.balance));
+                return s + Number(a.balance);
+              }, 0))}</G>
             </p>
           </div>
         )}

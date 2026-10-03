@@ -64,9 +64,9 @@ export function CategoryBreakdown({ byCategory, saved, budgets, monthLabel, onMa
               </p>
               <div className="grid grid-cols-3 gap-2.5">
                 {cats.map((c) => {
-                  const spent = group === "savings"
-                    ? saved
-                    : byCategory.get(c) ?? 0;
+                  // byCategory now includes savings activity (both transfer
+                  // and expense types with a savings category).
+                  const spent = byCategory.get(c) ?? 0;
                   const budget = budgetMap.get(c);
                   return (
                     <CategoryTile

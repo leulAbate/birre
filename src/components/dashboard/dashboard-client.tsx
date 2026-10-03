@@ -53,20 +53,23 @@ export function DashboardClient({
   const [openLoans, setOpenLoans] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
 
-  // Credit balance treated as absolute debt (sign stripped) so stray
-  // negatives from older auto-balance behavior don't confuse the math.
+  // Both 'credit' (cards) and 'loan' are debt — subtracted from net worth
+  // using absolute value so stray negatives from older auto-balance
+  // behavior don't confuse the math.
+  const DEBT_TYPES = new Set(["credit", "loan"]);
   const netWorth = accounts.reduce((sum, a) => {
-    if (a.type === "credit") return sum - Math.abs(Number(a.balance));
+    if (DEBT_TYPES.has(a.type)) return sum - Math.abs(Number(a.balance));
     return sum + Number(a.balance);
   }, 0);
   const netWorthPositive = accounts
-    .filter((a) => a.type !== "credit")
+    .filter((a) => !DEBT_TYPES.has(a.type))
     .reduce((s, a) => s + Number(a.balance), 0);
   const netWorthFill = netWorthPositive > 0
     ? Math.min(100, Math.max(0, (netWorth / netWorthPositive) * 100))
     : 0;
 
-  const loanAccounts = accounts.filter((a) => a.type === "credit");
+  // Loans section = type='loan' only. Credit cards don't appear.
+  const loanAccounts = accounts.filter((a) => a.type === "loan");
   const loanBalance = loanAccounts.reduce((sum, a) => sum + Math.abs(Number(a.balance)), 0);
   const loanFill = netWorthPositive > 0
     ? Math.min(100, (loanBalance / netWorthPositive) * 100)
