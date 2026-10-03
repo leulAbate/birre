@@ -71,11 +71,14 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
     }
   }
 
+  // When the user edits either $ or %, we save BOTH columns so the row
+  // can continue showing both without drifting.
   function handleUpdateAmount(cat: string, newAmount: string) {
     const num = parseFloat(newAmount);
     if (!num || num <= 0) return;
+    const pct = monthlyIncome > 0 ? (num / monthlyIncome) * 100 : null;
     startTransition(async () => {
-      await upsertBudget(cat, { amount: num, pct: null });
+      await upsertBudget(cat, { amount: num, pct });
     });
   }
 
@@ -115,7 +118,12 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
             <div style={{ borderRadius: 12, border: "1px solid var(--border)" }}>
               {budgetProgress.map((b, i) => {
                 const raw = budgetByCategory.get(b.category);
-                const isPct = raw?.pct != null;
+                // Derived pct if not stored, so every row shows both.
+                const effectivePct = raw?.pct != null
+                  ? Number(raw.pct)
+                  : monthlyIncome > 0
+                    ? (b.budgeted / monthlyIncome) * 100
+                    : null;
                 return (
                   <div
                     key={b.category}
@@ -126,60 +134,62 @@ export function BudgetsModal({ open, onClose, budgetProgress, budgets, monthlyIn
                       <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{b.category}</p>
                       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         Spent <G>{fmtCurrency(b.spent)}</G>
-                        {isPct && (
-                          <>
-                            {" · "}
-                            <G>{fmtCurrency(b.budgeted)}</G> ({raw?.pct}%)
-                          </>
-                        )}
                       </p>
                     </div>
-                    {isPct ? (
-                      <div style={{ position: "relative", width: 90 }}>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="100"
-                          defaultValue={raw?.pct ?? 0}
-                          onBlur={(e) => {
-                            const p = parseFloat(e.target.value);
-                            if (p !== raw?.pct) {
-                              handleUpdatePct(b.category, e.target.value);
-                            }
-                          }}
-                          style={{
-                            width: "100%", padding: "6px 22px 6px 10px", borderRadius: 8,
-                            border: "1px solid var(--violet-border)", background: "var(--violet-bg)",
-                            color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                            color: "var(--violet)", fontSize: 12, fontWeight: 700, pointerEvents: "none",
-                          }}
-                        >
-                          %
-                        </span>
-                      </div>
-                    ) : (
+                    {/* $ input */}
+                    <input
+                      type="number"
+                      step="0.01"
+                      key={`$-${b.category}-${b.budgeted}`}
+                      defaultValue={b.budgeted.toFixed(2)}
+                      onBlur={(e) => {
+                        const next = parseFloat(e.target.value);
+                        if (next && next !== b.budgeted) {
+                          handleUpdateAmount(b.category, e.target.value);
+                        }
+                      }}
+                      title="Dollar amount"
+                      style={{
+                        width: 100, padding: "6px 10px", borderRadius: 8,
+                        border: "1px solid var(--border)", background: "var(--progress-bg)",
+                        color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
+                      }}
+                    />
+                    {/* % input */}
+                    <div style={{ position: "relative", width: 76 }}>
                       <input
                         type="number"
-                        step="0.01"
-                        defaultValue={b.budgeted}
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        key={`%-${b.category}-${effectivePct}`}
+                        defaultValue={effectivePct != null ? effectivePct.toFixed(1) : ""}
+                        disabled={monthlyIncome <= 0}
+                        placeholder={monthlyIncome <= 0 ? "—" : ""}
                         onBlur={(e) => {
-                          if (parseFloat(e.target.value) !== b.budgeted) {
-                            handleUpdateAmount(b.category, e.target.value);
+                          const next = parseFloat(e.target.value);
+                          if (next && effectivePct != null && Math.abs(next - effectivePct) > 0.05) {
+                            handleUpdatePct(b.category, e.target.value);
                           }
                         }}
+                        title={monthlyIncome <= 0 ? "Add a paystub to enable %" : "Percent of take-home"}
                         style={{
-                          width: 120, padding: "6px 10px", borderRadius: 8,
-                          border: "1px solid var(--border)", background: "var(--progress-bg)",
+                          width: "100%", padding: "6px 22px 6px 10px", borderRadius: 8,
+                          border: "1px solid var(--violet-border)",
+                          background: monthlyIncome > 0 ? "var(--violet-bg)" : "var(--progress-bg)",
                           color: "var(--text-primary)", fontSize: 13, textAlign: "right", outline: "none",
+                          opacity: monthlyIncome > 0 ? 1 : 0.5,
                         }}
                       />
-                    )}
+                      <span
+                        style={{
+                          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                          color: "var(--violet)", fontSize: 12, fontWeight: 700, pointerEvents: "none",
+                        }}
+                      >
+                        %
+                      </span>
+                    </div>
                     <button
                       onClick={() => handleDelete(b.category)}
                       title="Remove"
