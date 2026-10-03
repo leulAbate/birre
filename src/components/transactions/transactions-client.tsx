@@ -31,6 +31,15 @@ export function TransactionsClient({ ym, transactions, accounts, goals, budgets 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [view, setView] = useState<ViewMode>("category");
 
+  const accountNameById = useMemo(
+    () => Object.fromEntries(accounts.map((a) => [a.id, a.name])),
+    [accounts],
+  );
+  const goalNameById = useMemo(
+    () => Object.fromEntries(goals.map((g) => [g.id, `${g.icon} ${g.name}`])),
+    [goals],
+  );
+
   const summary = useMemo(() => {
     let income = 0;
     let expense = 0;
@@ -52,6 +61,77 @@ export function TransactionsClient({ ym, transactions, accounts, goals, budgets 
   }, [transactions, search, catFilter, accFilter]);
 
   const hasFilter = !!search || !!catFilter || !!accFilter;
+
+  function handleExport() {
+    const header = [
+      "Date",
+      "Description",
+      "Amount",
+      "Signed Amount",
+      "Type",
+      "Category",
+      "Account",
+      "To Account",
+      "Goal",
+      "Note",
+      "Auto-generated",
+      "Created At",
+    ];
+    const rows = filtered.map((tx) => {
+      const amt = Number(tx.amount);
+      const signed =
+        tx.type === "expense" ? -amt :
+        tx.type === "income" ? amt :
+        -amt; // transfer treated as outflow from source
+      return [
+        tx.date,
+        tx.description,
+        amt.toFixed(2),
+        signed.toFixed(2),
+        tx.type,
+        tx.category,
+        tx.account_id ? (accountNameById[tx.account_id] ?? "") : "",
+        tx.to_account_id ? (accountNameById[tx.to_account_id] ?? "") : "",
+        tx.goal_id ? (goalNameById[tx.goal_id] ?? "") : "",
+        tx.note ?? "",
+        tx.paystub_id ? "yes" : "",
+        tx.created_at,
+      ];
+    });
+    // Totals footer
+    const totalIncome = filtered
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const totalExpense = filtered
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const net = totalIncome - totalExpense;
+
+    const lines = [
+      header.join(","),
+      ...rows.map((r) => r.map(csvEscape).join(",")),
+      "",
+      ["", "TOTALS", "", "", "", "", "", "", "", "", "", ""].map(csvEscape).join(","),
+      ["", "Income", totalIncome.toFixed(2), "", "", "", "", "", "", "", "", ""].map(csvEscape).join(","),
+      ["", "Expense", totalExpense.toFixed(2), "", "", "", "", "", "", "", "", ""].map(csvEscape).join(","),
+      ["", "Net", net.toFixed(2), "", "", "", "", "", "", "", "", ""].map(csvEscape).join(","),
+    ];
+    const csv = lines.join("\n");
+    const filterTag =
+      [search && "search", catFilter && catFilter.replace(/\W+/g, "-"), accFilter && "account"]
+        .filter(Boolean)
+        .join("-");
+    const filename = `birre-${ym}${filterTag ? `-${filterTag}` : ""}.csv`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   function shiftMonth(direction: number) {
     const [y, m] = ym.split("-").map(Number);
@@ -85,6 +165,18 @@ export function TransactionsClient({ ym, transactions, accounts, goals, budgets 
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={filtered.length === 0}
+              className="btn-ghost flex items-center gap-2"
+              style={{ opacity: filtered.length === 0 ? 0.5 : 1 }}
+              title={filtered.length === 0 ? "No rows to export" : `Export ${filtered.length} row${filtered.length === 1 ? "" : "s"} to CSV`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z" />
+              </svg>
+              Export
+            </button>
             <button onClick={() => setOpenCsv(true)} className="btn-ghost flex items-center gap-2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
@@ -302,6 +394,14 @@ function ViewButton({
 function formatMonth(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}
+
+/** CSV cell escape: wrap in quotes if the value contains comma, quote, or newline;
+ *  escape embedded quotes by doubling them. */
+function csvEscape(value: string): string {
+  const needsQuote = /[",\n]/.test(value);
+  const safe = value.replace(/"/g, '""');
+  return needsQuote ? `"${safe}"` : safe;
 }
 
 // Re-export for transaction-table.tsx
